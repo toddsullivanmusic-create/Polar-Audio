@@ -17,7 +17,11 @@ Every push to `main` builds the Audio Units on a macOS runner, runs Apple's `auv
 **"latest"** release: <https://github.com/toddsullivanmusic-create/polar-audio/releases/tag/latest>
 
 1. Download `PolarAudio-macOS.zip` from that page and unzip it.
-2. Double-click **Install Polar Plugins.command** (right-click → Open if macOS complains the first time).
+2. Run the installer. On macOS Sequoia (15+) Gatekeeper blocks downloaded scripts, so open Terminal and paste:
+   ```bash
+   cd "$(ls -d ~/Downloads/PolarAudio-macOS*/ | head -1)" && xattr -cr . && bash "Install Polar Plugins.command"
+   ```
+   (Alternative: *System Settings → Privacy & Security → Security → Open Anyway*.) On older macOS, just double-click **Install Polar Plugins.command**.
 3. Open Logic Pro. Effects: *Audio Units → Polar Audio → AURA / GLOW*. Instruments: *AU Instruments → Polar Audio → McGEE / SANCTUARY*.
 
 Details and troubleshooting in `Installer/INSTALL.txt`. Versioned releases are published for `v*` tags.
