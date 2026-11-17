@@ -8,7 +8,7 @@
 |---|---|---|---|
 | **AURA** | Electric blue | The reverb that makes everything sound expensive. | 8-line modulated FDN with four colour circuits, true shimmer, and built-in ducking. |
 | **GLOW** | Amber | Four analog circuits. One knob to taste. | Tube / Tape / Transformer / Crunch modelled as *different* nonlinearities, 4× oversampled, with Focus to aim the colour. |
-| **McGEE** | Mint | The polysynth with the ladder in it. | 3 alias-free oscillators into a 4-pole transistor ladder with drive, 16 voices, unison Fat, chorus + delay. |
+| **McGEE** | Mint | The underwater synth. | Alias-free analog oscillators and a transistor ladder, then the texture stage the lo-fi records actually use: cassette wow & flutter, 12-bit crunch, muffle, tape saturation, haze chorus, a dirty gated room. One screen, one vibe. |
 | **SANCTUARY** | Lavender | Pads in every key. Change key without a gap. | The first *instrument* for worship pads inside Logic: infinite sustain, seamless key crossfade, mod-wheel swell, one-tap fade. |
 
 ## Launch sequence (90 days)
@@ -19,7 +19,7 @@
 
 **Week 5 — AURA + GLOW together** as "The Mix Pair", with a 14-day trial and a $79 pair price. These are the volume products; marketing is 100 % audio demos: vocal, drum bus, piano, synth pad, 15 s each, dry → wet, captioned.
 
-**Week 8 — McGEE** with a free preset pack by a known worship/pop sound designer, and a "designed in McGEE" playlist.
+**Week 8 — McGEE** aimed at the indie / bedroom-pop / alt-R&B producer who wants the Mk.gee-adjacent "underwater" palette without a cassette deck. Launch with 20-second "one knob" shorts (Wobble, Lo-fi, Room) — the texture controls demo themselves. Describe the sound, never claim artist endorsement: "lo-fi cassette texture", "underwater keys", not a name.
 
 **Week 10 — Polar Collection bundle** at $149 intro, Black-Friday-adjacent.
 

@@ -58,7 +58,7 @@ private:
     polar::LookAndFeel lnf { theme };
     polar::Backdrop backdrop { theme, &proc.energy };
     polar::Header header { theme, "McGEE", "Lo-fi Analog Polysynth" };
-    polar::Panel oscPanel { theme, "Oscillators" }, filterPanel { theme, "Ladder Filter" }, envPanel { theme, "Envelopes  ·  filter / amp" },
+    polar::Panel oscPanel { theme, "Oscillators" }, filterPanel { theme, "Ladder Filter" }, envPanel { theme, "Envelopes: filter | amp" },
                  modPanel { theme, "Modulation" }, texturePanel { theme, "Texture" }, fxPanel { theme, "Tape Delay & Output" };
     McGeeScope scope { proc, theme };
     polar::Choice w1 { proc.apvts, ID::osc1Wave, "Osc 1" }, w2 { proc.apvts, ID::osc2Wave, "Osc 2" }, w3 { proc.apvts, ID::osc3Wave, "Osc 3" },

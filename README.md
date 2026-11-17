@@ -4,20 +4,26 @@
 |---|---|---|---|
 | 🔵 | **AURA** | Audio Unit effect | Algorithmic reverb: 8-line modulated FDN, 4 colour circuits (Modern / Vintage / Dark / Plate), shimmer, freeze, ducking, width |
 | 🟠 | **GLOW** | Audio Unit effect | 4× oversampled saturation: Tube / Tape / Transformer / Crunch circuits, 3-band Focus, Dynamics, tilt Tone, auto-gain |
-| 🟢 | **McGEE** | Audio Unit instrument | 16-voice analog-style polysynth: 3 PolyBLEP oscillators, Moog-style ladder filter with drive, 2 ADSRs, LFO, glide/mono, unison Fat, chorus, delay |
+| 🟢 | **McGEE** | Audio Unit instrument | Lo-fi analog polysynth built for the "underwater" Mk.gee-style texture: 3 alias-free oscillators (+ FM Keys), transistor-ladder filter with drive, 16 voices, unison Fat, then a Texture stage — cassette **Wobble** (wow & flutter), **Lo-fi** (12-bit / sample-rate crunch, muffle, tape saturation, hiss), **Haze** chorus, dirty gated **Room**, modulated tape delay. Sustain pedal + pitch bend. |
 | 🟣 | **SANCTUARY** | Audio Unit instrument | Live worship pad engine: generated pads in any key, major/minor, 5 styles, seamless key crossfade, MIDI key switching, mod-wheel swell, one-tap fade, bar-synced motion, AURA reverb built in |
 
 All four share one design system (`Shared/UI`): dark-glass panels, glowing rotary arcs, iOS-style switches, a reactive particle/aurora backdrop, factory + user presets, A/B, resizable windows with locked aspect ratio.
 
 Market reasoning: [`Marketing/MARKET_ANALYSIS.md`](Marketing/MARKET_ANALYSIS.md). Launch plan: [`Marketing/MARKETING.md`](Marketing/MARKETING.md).
 
-## Build for Logic Pro (macOS)
+## Install in Logic Pro (no build needed)
+
+Every push to `main` builds the Audio Units on a macOS runner and runs Apple's `auval` on them. Grab the latest
+**PolarAudio-macOS.zip** from the repo's *Actions → latest run → Artifacts* (or from *Releases* for tagged versions), unzip,
+double-click **Install Polar Plugins.command**, open Logic. Details in `Installer/INSTALL.txt`.
+
+## Build for Logic Pro yourself (macOS)
 
 Logic loads **Audio Units**. AU can only be compiled on macOS with Xcode; this repo is set up so that is a three-command job.
 
 ```bash
 # prerequisites: Xcode 15+, CMake 3.22+ (brew install cmake)
-git clone --depth 1 --branch 8.0.4 https://github.com/juce-framework/JUCE.git ../JUCE   # JUCE must sit next to this folder
+# JUCE is fetched automatically by CMake (or put a checkout at ../JUCE to reuse one)
 cmake -B build -G Xcode -DPOLAR_BUILD_TESTS=OFF
 cmake --build build --config Release
 ```

@@ -82,7 +82,7 @@ void McGeeEditor::resized()
     texturePanel.setBounds (r.removeFromLeft ((int) (w3 * 0.30f))); r.removeFromLeft (gap);
     fxPanel.setBounds (r);
     auto mc = modPanel.content().translated (modPanel.getX(), modPanel.getY());
-    auto monoArea = mc.removeFromRight (70);
+    auto monoArea = mc.removeFromRight (92);
     mono.setBounds (monoArea.removeFromTop (24).translated (0, 12));
     int mw = mc.getWidth() / 5;
     for (auto* k : { &lfoRate, &lfoPitch, &lfoCutoff, &glide, &tune }) k->setBounds (mc.removeFromLeft (mw).reduced (1));

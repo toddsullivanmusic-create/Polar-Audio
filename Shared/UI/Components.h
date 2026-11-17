@@ -27,7 +27,19 @@ public:
         addAndMakeVisible (label);
         attachment = std::make_unique<APVTS::SliderAttachment> (state, paramID, slider);
         if (auto* p = state.getParameter (paramID))
+        {
             slider.setDoubleClickReturnValue (true, p->convertFrom0to1 (p->getDefaultValue()));
+            // Clean value readout: up to 2 decimals, trailing zeros stripped, unit appended ("2.5 s", "60 %", "1800 Hz")
+            juce::String unit = p->getLabel();
+            slider.textFromValueFunction = [unit] (double v)
+            {
+                juce::String t (v, 2);
+                if (t.containsChar ('.')) t = t.trimCharactersAtEnd ("0").trimCharactersAtEnd (".");
+                if (t == "-0") t = "0";
+                return unit.isNotEmpty() ? t + " " + unit : t;
+            };
+            slider.updateText();
+        }
     }
 
     void resized() override
