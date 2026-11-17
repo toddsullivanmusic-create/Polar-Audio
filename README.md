@@ -13,9 +13,14 @@ Market reasoning: [`Marketing/MARKET_ANALYSIS.md`](Marketing/MARKET_ANALYSIS.md)
 
 ## Install in Logic Pro (no build needed)
 
-Every push to `main` builds the Audio Units on a macOS runner and runs Apple's `auval` on them. Grab the latest
-**PolarAudio-macOS.zip** from the repo's *Actions → latest run → Artifacts* (or from *Releases* for tagged versions), unzip,
-double-click **Install Polar Plugins.command**, open Logic. Details in `Installer/INSTALL.txt`.
+Every push to `main` builds the Audio Units on a macOS runner, runs Apple's `auval` on them, and publishes the result as the
+**"latest"** release: <https://github.com/toddsullivanmusic-create/polar-audio/releases/tag/latest>
+
+1. Download `PolarAudio-macOS.zip` from that page and unzip it.
+2. Double-click **Install Polar Plugins.command** (right-click → Open if macOS complains the first time).
+3. Open Logic Pro. Effects: *Audio Units → Polar Audio → AURA / GLOW*. Instruments: *AU Instruments → Polar Audio → McGEE / SANCTUARY*.
+
+Details and troubleshooting in `Installer/INSTALL.txt`. Versioned releases are published for `v*` tags.
 
 ## Build for Logic Pro yourself (macOS)
 
