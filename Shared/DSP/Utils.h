@@ -2,7 +2,7 @@
 #include <juce_dsp/juce_dsp.h>
 #include <cmath>
 
-namespace lumen::dsp
+namespace polar::dsp
 {
 constexpr float kPi = 3.14159265358979f;
 
@@ -94,4 +94,4 @@ inline void trackPeak (std::atomic<float>& dst, const float* data, int n)
     float p = 0; for (int i = 0; i < n; ++i) p = std::max (p, std::abs (data[i]));
     float cur = dst.load(); while (p > cur && ! dst.compare_exchange_weak (cur, p)) {}
 }
-} // namespace lumen::dsp
+} // namespace polar::dsp

@@ -1,0 +1,14 @@
+POLAR AUDIO — AURA · GLOW · McGEE · SANCTUARY
+===============================================
+
+1. Double-click "Install Polar Plugins.command".
+   (If macOS refuses: right-click it → Open → Open.)
+2. Open Logic Pro.
+   Effects:      Audio Units → Polar Audio → AURA, GLOW
+   Instruments:  AU Instruments → Polar Audio → McGEE, SANCTUARY
+3. Not showing? Logic Pro → Settings → Plug-in Manager → tick the Polar entries → "Reset & Rescan Selection".
+
+Manual install: copy Components/*.component to ~/Library/Audio/Plug-Ins/Components
+and run:  xattr -cr ~/Library/Audio/Plug-Ins/Components/Aura.component   (repeat for each)
+
+Requirements: macOS 11+, Apple Silicon or Intel (universal), Logic Pro 10.7+.

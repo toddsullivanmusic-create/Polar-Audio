@@ -33,7 +33,7 @@ AudioProcessorValueTreeState::ParameterLayout AuraProcessor::createLayout()
     return l;
 }
 
-std::vector<lumen::Preset> AuraProcessor::factoryPresets()
+std::vector<polar::Preset> AuraProcessor::factoryPresets()
 {
     using M = std::map<String, float>;
     return {
@@ -117,8 +117,8 @@ void AuraProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer&)
     outGain.setGainDecibels (get (ID::output));
     juce::dsp::AudioBlock<float> blk (buffer);
     outGain.process (juce::dsp::ProcessContextReplacing<float> (blk));
-    lumen::dsp::trackPeak (meterL, buffer.getReadPointer (0), n);
-    lumen::dsp::trackPeak (meterR, buffer.getReadPointer (numCh > 1 ? 1 : 0), n);
+    polar::dsp::trackPeak (meterL, buffer.getReadPointer (0), n);
+    polar::dsp::trackPeak (meterR, buffer.getReadPointer (numCh > 1 ? 1 : 0), n);
 }
 
 void AuraProcessor::getStateInformation (MemoryBlock& dest)

@@ -3,7 +3,7 @@
 
 namespace glow
 {
-using namespace lumen::dsp;
+using namespace polar::dsp;
 
 // GLOW core. Signal path (per channel, inside 4x oversampling):
 //   3-band Linkwitz-Riley split -> per-band drive (Focus) -> circuit waveshaper -> recombine

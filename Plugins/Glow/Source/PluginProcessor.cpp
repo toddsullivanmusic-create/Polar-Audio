@@ -20,7 +20,7 @@ AudioProcessorValueTreeState::ParameterLayout GlowProcessor::createLayout()
     return l;
 }
 
-std::vector<lumen::Preset> GlowProcessor::factoryPresets()
+std::vector<polar::Preset> GlowProcessor::factoryPresets()
 {
     using M = std::map<String, float>;
     return {
@@ -83,7 +83,7 @@ void GlowProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer&)
 
     dryBuf.setSize (2, n, false, false, true);
     for (int ch = 0; ch < numCh; ++ch) dryBuf.copyFrom (ch, 0, buffer, ch, 0, n);
-    lumen::dsp::trackPeak (inputLevel, buffer.getReadPointer (0), n);
+    polar::dsp::trackPeak (inputLevel, buffer.getReadPointer (0), n);
 
     float inSq = 0; for (int ch = 0; ch < numCh; ++ch) { auto* d = buffer.getReadPointer (ch); for (int i = 0; i < n; ++i) inSq += d[i] * d[i]; }
 
@@ -132,8 +132,8 @@ void GlowProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer&)
         }
     }
     energy.store (jlimit (0.0f, 1.0f, e / (float) (n * numCh) * 4.0f));
-    lumen::dsp::trackPeak (meterL, buffer.getReadPointer (0), n);
-    lumen::dsp::trackPeak (meterR, buffer.getReadPointer (numCh > 1 ? 1 : 0), n);
+    polar::dsp::trackPeak (meterL, buffer.getReadPointer (0), n);
+    polar::dsp::trackPeak (meterR, buffer.getReadPointer (numCh > 1 ? 1 : 0), n);
 }
 
 void GlowProcessor::getStateInformation (MemoryBlock& dest) { if (auto xml = apvts.copyState().createXml()) copyXmlToBinary (*xml, dest); }

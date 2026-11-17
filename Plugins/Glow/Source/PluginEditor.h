@@ -5,7 +5,7 @@
 class GlowScope : public juce::Component, private juce::Timer
 {
 public:
-    GlowScope (GlowProcessor& p, const lumen::Theme& t) : proc (p), theme (t) { setInterceptsMouseClicks (false, false); startTimerHz (30); }
+    GlowScope (GlowProcessor& p, const polar::Theme& t) : proc (p), theme (t) { setInterceptsMouseClicks (false, false); startTimerHz (30); }
     void paint (juce::Graphics& g) override
     {
         auto b = getLocalBounds().toFloat().reduced (16);
@@ -37,13 +37,13 @@ public:
         g.fillEllipse (bead.x - 4, bead.y - 4, 8, 8);
         g.setColour (theme.accent.withAlpha (0.4f));
         g.fillEllipse (bead.x - 10, bead.y - 10, 20, 20);
-        g.setColour (theme.textFaint); g.setFont (lumen::uiFont (10.5f));
+        g.setColour (theme.textFaint); g.setFont (polar::uiFont (10.5f));
         g.drawText ("IN", b.toNearestInt().removeFromBottom (14), juce::Justification::centredRight);
         g.drawText ("OUT", b.toNearestInt().removeFromTop (14), juce::Justification::centredLeft);
     }
 private:
     void timerCallback() override { float l = proc.inputLevel.exchange (0.0f); level += (l - level) * (l > level ? 0.6f : 0.12f); repaint(); }
-    GlowProcessor& proc; const lumen::Theme& theme; float level = 0;
+    GlowProcessor& proc; const polar::Theme& theme; float level = 0;
 };
 
 class GlowEditor : public juce::AudioProcessorEditor
@@ -54,17 +54,17 @@ public:
     void resized() override;
 private:
     GlowProcessor& proc;
-    lumen::Theme theme = lumen::Theme::withAccent (juce::Colour (0xffff8a3d));
-    lumen::LookAndFeel lnf { theme };
-    lumen::Backdrop backdrop { theme, &proc.energy };
-    lumen::Header header { theme, "GLOW", "Analog Saturation" };
-    lumen::Panel circuitPanel { theme, "Circuit" }, shapePanel { theme, "Shape" }, outPanel { theme, "Output" };
-    lumen::Knob drive { proc.apvts, ID::drive, "Drive" }, bias { proc.apvts, ID::bias, "Bias" }, focus { proc.apvts, ID::focus, "Focus", true },
+    polar::Theme theme = polar::Theme::withAccent (juce::Colour (0xffff8a3d));
+    polar::LookAndFeel lnf { theme };
+    polar::Backdrop backdrop { theme, &proc.energy };
+    polar::Header header { theme, "GLOW", "Analog Saturation" };
+    polar::Panel circuitPanel { theme, "Circuit" }, shapePanel { theme, "Shape" }, outPanel { theme, "Output" };
+    polar::Knob drive { proc.apvts, ID::drive, "Drive" }, bias { proc.apvts, ID::bias, "Bias" }, focus { proc.apvts, ID::focus, "Focus", true },
                 dynamics { proc.apvts, ID::dynamics, "Dynamics" }, tone { proc.apvts, ID::tone, "Tone", true },
                 mix { proc.apvts, ID::mix, "Mix" }, output { proc.apvts, ID::output, "Output", true };
-    lumen::Choice circuit { proc.apvts, ID::circuit, "Circuit" }, oversample { proc.apvts, ID::oversample, "Oversampling" };
-    lumen::Toggle autogain { proc.apvts, ID::autogain, "Auto gain" };
-    lumen::Meter meter { theme, proc.meterL, proc.meterR };
+    polar::Choice circuit { proc.apvts, ID::circuit, "Circuit" }, oversample { proc.apvts, ID::oversample, "Oversampling" };
+    polar::Toggle autogain { proc.apvts, ID::autogain, "Auto gain" };
+    polar::Meter meter { theme, proc.meterL, proc.meterR };
     GlowScope scope { proc, theme };
-    lumen::ABState ab;
+    polar::ABState ab;
 };

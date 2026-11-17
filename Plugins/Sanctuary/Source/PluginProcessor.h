@@ -33,13 +33,13 @@ public:
     void setStateInformation (const void*, int) override;
 
     juce::AudioProcessorValueTreeState apvts;
-    lumen::PresetManager presets;
+    polar::PresetManager presets;
     std::atomic<float> meterL { 0 }, meterR { 0 }, energy { 0 }, transition { 1 }, swellLevel { 0 };
     std::atomic<double> hostBpm { 120.0 };
 
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
-    static std::vector<lumen::Preset> factoryPresets();
+    static std::vector<polar::Preset> factoryPresets();
     sanctuary::PadEngine engine;
     juce::LinearSmoothedValue<float> out;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SanctuaryProcessor)

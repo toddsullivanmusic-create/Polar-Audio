@@ -2,7 +2,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "LookAndFeel.h"
 
-namespace lumen
+namespace polar
 {
 using APVTS = juce::AudioProcessorValueTreeState;
 
@@ -271,7 +271,7 @@ public:
     juce::File userDir() const
     {
         return juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory)
-                   .getChildFile ("Lumen Audio").getChildFile (product).getChildFile ("Presets");
+                   .getChildFile ("Polar Audio").getChildFile (product).getChildFile ("Presets");
     }
 
     void populate (juce::ComboBox& box)
@@ -280,7 +280,7 @@ public:
         int id = 1;
         box.addSectionHeading ("Factory");
         for (auto& p : factoryPresets) box.addItem (p.name, id++);
-        auto files = userDir().findChildFiles (juce::File::findFiles, false, "*.lumenpreset");
+        auto files = userDir().findChildFiles (juce::File::findFiles, false, "*.polarpreset");
         if (! files.isEmpty())
         {
             box.addSeparator();
@@ -296,7 +296,7 @@ public:
             if (sel >= 1 && sel <= (int) factoryPresets.size()) apply (factoryPresets[(size_t) sel - 1]);
             else if (sel > (int) factoryPresets.size())
             {
-                auto fs = userDir().findChildFiles (juce::File::findFiles, false, "*.lumenpreset");
+                auto fs = userDir().findChildFiles (juce::File::findFiles, false, "*.polarpreset");
                 int idx = sel - 1 - (int) factoryPresets.size();
                 if (idx >= 0 && idx < fs.size()) loadFile (fs[idx]);
             }
@@ -331,7 +331,7 @@ public:
                 auto name = aw->getTextEditorContents ("name");
                 userDir().createDirectory();
                 if (auto xml = state.copyState().createXml())
-                    xml->writeTo (userDir().getChildFile (name + ".lumenpreset"));
+                    xml->writeTo (userDir().getChildFile (name + ".polarpreset"));
                 populate (box);
             }
             delete aw;
@@ -354,4 +354,4 @@ struct ABState
         onB = ! onB;
     }
 };
-} // namespace lumen
+} // namespace polar

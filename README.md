@@ -1,4 +1,4 @@
-# Lumen Audio — four Logic Pro plugins
+# Polar Audio — four Logic Pro plugins
 
 | | Plugin | Type | What it is |
 |---|---|---|---|
@@ -18,18 +18,18 @@ Logic loads **Audio Units**. AU can only be compiled on macOS with Xcode; this r
 ```bash
 # prerequisites: Xcode 15+, CMake 3.22+ (brew install cmake)
 git clone --depth 1 --branch 8.0.4 https://github.com/juce-framework/JUCE.git ../JUCE   # JUCE must sit next to this folder
-cmake -B build -G Xcode -DLUMEN_BUILD_TESTS=OFF
+cmake -B build -G Xcode -DPOLAR_BUILD_TESTS=OFF
 cmake --build build --config Release
 ```
 
 `COPY_PLUGIN_AFTER_BUILD` is on, so each AU is installed to `~/Library/Audio/Plug-Ins/Components/` automatically. Then:
 
 ```bash
-auval -a | grep Lumn          # all four should validate
+auval -a | grep Polr          # all four should validate
 killall -9 AudioComponentRegistrar  # if Logic doesn't see them, reset the AU cache and relaunch Logic
 ```
 
-In Logic: effects live under **Audio Units → Lumen Audio**, instruments under **AU Instruments → Lumen Audio**. Universal binaries (arm64 + x86_64), macOS 11+.
+In Logic: effects live under **Audio Units → Polar Audio**, instruments under **AU Instruments → Polar Audio**. Universal binaries (arm64 + x86_64), macOS 11+.
 
 For distribution to customers: codesign with a Developer ID, notarize, and ship a `.pkg`. (`HARDENED_RUNTIME_ENABLED` is already set in CMake.)
 

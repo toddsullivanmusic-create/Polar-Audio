@@ -1,8 +1,8 @@
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
 
-// Lumen design language: Apple-grade dark glass, one accent per product, generous spacing.
-namespace lumen
+// Polar design language: Apple-grade dark glass, one accent per product, generous spacing.
+namespace polar
 {
 struct Theme
 {
@@ -32,4 +32,4 @@ inline juce::Font uiFont (float size, bool bold = false)
    #endif
     return f;
 }
-} // namespace lumen
+} // namespace polar

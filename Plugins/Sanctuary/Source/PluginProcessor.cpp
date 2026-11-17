@@ -24,7 +24,7 @@ AudioProcessorValueTreeState::ParameterLayout SanctuaryProcessor::createLayout()
     return l;
 }
 
-std::vector<lumen::Preset> SanctuaryProcessor::factoryPresets()
+std::vector<polar::Preset> SanctuaryProcessor::factoryPresets()
 {
     using M = std::map<String, float>;
     return {
@@ -89,7 +89,7 @@ void SanctuaryProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& m
     engine.render (L, R, n);
     out.setTargetValue (Decibels::decibelsToGain (g (ID::output)));
     for (int i = 0; i < n; ++i) { float v = out.getNextValue(); L[i] *= v; R[i] *= v; }
-    lumen::dsp::trackPeak (meterL, L, n); lumen::dsp::trackPeak (meterR, R, n);
+    polar::dsp::trackPeak (meterL, L, n); polar::dsp::trackPeak (meterR, R, n);
     energy.store (jlimit (0.0f, 1.0f, engine.getLevel() * 3.0f));
     transition.store (engine.getTransitionProgress());
     swellLevel.store (engine.getSwell());

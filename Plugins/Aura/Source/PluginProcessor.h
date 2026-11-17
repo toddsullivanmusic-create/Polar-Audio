@@ -36,18 +36,18 @@ public:
     void setStateInformation (const void*, int) override;
 
     juce::AudioProcessorValueTreeState apvts;
-    lumen::PresetManager presets;
+    polar::PresetManager presets;
     std::atomic<float> meterL { 0 }, meterR { 0 }, tailEnergy { 0 };
 
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
-    static std::vector<lumen::Preset> factoryPresets();
+    static std::vector<polar::Preset> factoryPresets();
 
     aura::ReverbEngine engine;
     juce::AudioBuffer<float> wet;
     juce::dsp::Gain<float> outGain;
     juce::LinearSmoothedValue<float> mixSm, widthSm;
-    lumen::dsp::OnePole duckEnv;
+    polar::dsp::OnePole duckEnv;
     float duckState = 0;
     double sr = 44100;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AuraProcessor)

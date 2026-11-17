@@ -4,7 +4,7 @@
 
 namespace aura
 {
-using namespace lumen::dsp;
+using namespace polar::dsp;
 
 // AURA core: pre-delay -> input filtering -> 4-stage modulated diffusion -> 8-line Householder FDN
 // with per-line damping, slow chorused modulation, optional octave shimmer in the feedback path,

@@ -1,8 +1,8 @@
-# Lumen Audio — Go-to-Market Playbook
+# Polar Audio — Go-to-Market Playbook
 
 ## Brand
 
-**Lumen Audio** — "Sound you can see." Apple-grade dark-glass interfaces, one accent colour per product, a living backdrop that breathes with the audio. Every product opens on one screen; nothing is more than one click deep. The brand promise is *engine first*: every launch asset leads with audio, never with a feature list.
+**Polar Audio** — "Sound you can see." Apple-grade dark-glass interfaces, one accent colour per product, a living backdrop that breathes with the audio. Every product opens on one screen; nothing is more than one click deep. The brand promise is *engine first*: every launch asset leads with audio, never with a feature list.
 
 | Product | Accent | One-liner | Hero claim |
 |---|---|---|---|
@@ -21,7 +21,7 @@
 
 **Week 8 — McGEE** with a free preset pack by a known worship/pop sound designer, and a "designed in McGEE" playlist.
 
-**Week 10 — Lumen Collection bundle** at $149 intro, Black-Friday-adjacent.
+**Week 10 — Polar Collection bundle** at $149 intro, Black-Friday-adjacent.
 
 ## Pages
 
@@ -37,7 +37,7 @@ Every product page follows the same layout: autoplaying muted UI loop at the top
 ## Pricing tactics
 
 - Intro pricing for 30 days, then list. Never discount below intro again except Black Friday (max 50 % of list).
-- Loyalty: owners of any Lumen product get the bundle completion price.
+- Loyalty: owners of any Polar product get the bundle completion price.
 - Trials: 14 days, full features, email licence (no iLok). Trial start is the KPI to watch; expect 8–15 % trial→paid for sound-driven products.
 - Education / church pricing: 30 % with a .org or church email — it builds goodwill in a community that talks to each other.
 

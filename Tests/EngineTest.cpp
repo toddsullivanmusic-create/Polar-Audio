@@ -27,26 +27,26 @@ int main (int argc, char** argv)
     // Walk every factory preset: render, check health
     auto* programs = proc.get();
     int presetCount = 1;
-   #if LUMEN_TEST_Aura
+   #if POLAR_TEST_Aura
     presetCount = (int) dynamic_cast<AuraProcessor*> (programs)->presets.factoryPresets.size();
-   #elif LUMEN_TEST_Glow
+   #elif POLAR_TEST_Glow
     presetCount = (int) dynamic_cast<GlowProcessor*> (programs)->presets.factoryPresets.size();
-   #elif LUMEN_TEST_McGee
+   #elif POLAR_TEST_McGee
     presetCount = (int) dynamic_cast<McGeeProcessor*> (programs)->presets.factoryPresets.size();
-   #elif LUMEN_TEST_Sanctuary
+   #elif POLAR_TEST_Sanctuary
     presetCount = (int) dynamic_cast<SanctuaryProcessor*> (programs)->presets.factoryPresets.size();
    #endif
 
     bool ok = true;
     for (int preset = 0; preset < presetCount; ++preset)
     {
-       #if LUMEN_TEST_Aura
+       #if POLAR_TEST_Aura
         dynamic_cast<AuraProcessor*> (programs)->presets.applyIndex (preset);
-       #elif LUMEN_TEST_Glow
+       #elif POLAR_TEST_Glow
         dynamic_cast<GlowProcessor*> (programs)->presets.applyIndex (preset);
-       #elif LUMEN_TEST_McGee
+       #elif POLAR_TEST_McGee
         dynamic_cast<McGeeProcessor*> (programs)->presets.applyIndex (preset);
-       #elif LUMEN_TEST_Sanctuary
+       #elif POLAR_TEST_Sanctuary
         auto* sp = dynamic_cast<SanctuaryProcessor*> (programs);
         sp->presets.applyIndex (preset);
         if (auto* p = sp->apvts.getParameter ("play")) p->setValueNotifyingHost (1.0f);
@@ -74,10 +74,10 @@ int main (int argc, char** argv)
             }
             else
             {
-               #if LUMEN_TEST_McGee
+               #if POLAR_TEST_McGee
                 if (pos == 0) { midi.addEvent (juce::MidiMessage::noteOn (1, 48, 0.9f), 0); midi.addEvent (juce::MidiMessage::noteOn (1, 55, 0.8f), 0); midi.addEvent (juce::MidiMessage::noteOn (1, 64, 0.8f), 0); }
                 if (pos == (int) (sr * 2.0) / block * block) { midi.addEvent (juce::MidiMessage::noteOff (1, 48), 0); midi.addEvent (juce::MidiMessage::noteOff (1, 55), 0); midi.addEvent (juce::MidiMessage::noteOff (1, 64), 0); }
-               #elif LUMEN_TEST_Sanctuary
+               #elif POLAR_TEST_Sanctuary
                 if (pos == (int) (sr * 3.0) / block * block) midi.addEvent (juce::MidiMessage::noteOn (1, 43, 0.9f), 0); // key switch to G major mid-render
                #endif
             }

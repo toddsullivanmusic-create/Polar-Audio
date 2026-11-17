@@ -32,12 +32,12 @@ public:
     void setStateInformation (const void*, int) override;
 
     juce::AudioProcessorValueTreeState apvts;
-    lumen::PresetManager presets;
+    polar::PresetManager presets;
     std::atomic<float> meterL { 0 }, meterR { 0 }, inputLevel { 0 }, energy { 0 };
 
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
-    static std::vector<lumen::Preset> factoryPresets();
+    static std::vector<polar::Preset> factoryPresets();
 
     glow::SaturationEngine engine;
     std::unique_ptr<juce::dsp::Oversampling<float>> os2, os4;

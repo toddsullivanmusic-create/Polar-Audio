@@ -1,40 +1,44 @@
 #pragma once
 #include "DSP/Utils.h"
+#include "ReverbEngine.h"   // AURA core, used here as a tiny dirty gated room
 #include <juce_audio_basics/juce_audio_basics.h>
+
+// McGEE — a polysynth built for the "underwater" lo-fi texture: alias-free analog oscillators and a
+// transistor-ladder filter, then a TEXTURE stage that does the things the records do to their sounds:
+// cassette wow & flutter, 12-bit / sample-rate crunch, muffle, tape saturation, hiss, a slow swirling
+// "haze" chorus, a short dirty gated room, and a modulated tape delay.
 
 namespace mcgee
 {
-using namespace lumen::dsp;
+using namespace polar::dsp;
 
-// Shared per-instance parameters (read by every voice)
 struct SynthParams
 {
-    int   osc1Wave = 0, osc2Wave = 0, osc3Wave = 2;        // 0 saw, 1 square, 2 tri, 3 sine
+    int   osc1Wave = 0, osc2Wave = 0, osc3Wave = 2;        // 0 saw, 1 square, 2 tri, 3 sine, 4 FM keys
     float osc1Lvl = 1, osc2Lvl = 0.8f, osc3Lvl = 0.5f;
-    int   osc2Oct = 0, osc3Oct = -1;                      // octave offsets
+    int   osc2Oct = 0, osc3Oct = -1;
     float osc2Detune = 7, osc3Detune = -5;               // cents
-    float pw = 0.5f;                                      // pulse width
-    float fat = 0.3f;                                     // unison spread (2 extra detuned copies of osc1)
+    float pw = 0.5f, fat = 0.3f, fm = 0.3f, fmRatio = 2.0f;
     float cutoff = 2000, reso = 0.3f, envAmt = 0.5f, keyTrack = 0.5f, filterDrive = 0.2f;
     float fA = 0.01f, fD = 0.4f, fS = 0.3f, fR = 0.5f;
     float aA = 0.005f, aD = 0.3f, aS = 0.8f, aR = 0.4f;
     float lfoRate = 4, lfoToPitch = 0, lfoToCutoff = 0;
-    float glide = 0; bool mono = false;
-    float drive = 0;                                      // output drive
+    float glide = 0; bool mono = false; float tune = 0;   // tune in semitones
+    // texture
+    float wobble = 0.3f, lofi = 0.3f, haze = 0.4f, room = 0.2f, drive = 0;
+    float delayTime = 0.375f, delayFb = 0.35f, delayMix = 0;
 };
 
-// PolyBLEP oscillator — alias-suppressed saw/square/tri
 struct Oscillator
 {
-    float phase = 0, inc = 0;
-    void setFreq (float hz, double sr) { inc = hz / (float) sr; }
+    float phase = 0, inc = 0, modPhase = 0;
     static inline float blep (float t, float dt)
     {
         if (t < dt) { t /= dt; return t + t - t * t - 1.0f; }
         if (t > 1.0f - dt) { t = (t - 1.0f) / dt; return t * t + t + t + 1.0f; }
         return 0.0f;
     }
-    inline float next (int wave, float pw, float& triState)
+    inline float next (int wave, float pw, float fmIndex, float fmRatio)
     {
         phase += inc; if (phase >= 1.0f) phase -= 1.0f;
         float t = phase, dt = juce::jmax (1e-5f, inc);
@@ -49,8 +53,13 @@ struct Oscillator
                 v -= blep (t2, dt);
                 return v;
             }
-            case 2: { juce::ignoreUnused (triState); return 1.0f - 4.0f * std::abs (t - 0.5f); } // triangle harmonics fall at 1/n^2: aliasing negligible
-            default: return std::sin (t * 2.0f * kPi);
+            case 2: return 1.0f - 4.0f * std::abs (t - 0.5f);     // harmonics fall at 1/n^2: aliasing negligible
+            case 3: return std::sin (t * 2.0f * kPi);
+            default:
+            {   // 2-operator FM (DX-style EP / bell): modulator at ratio, index scaled by the filter envelope upstream
+                modPhase += inc * fmRatio; if (modPhase >= 1.0f) modPhase -= 1.0f;
+                return std::sin (t * 2.0f * kPi + fmIndex * 6.0f * std::sin (modPhase * 2.0f * kPi));
+            }
         }
     }
 };
@@ -77,12 +86,12 @@ struct ADSR
     }
 };
 
-// Moog-style 4-pole ladder (Huovilainen-inspired, with tanh nonlinearities and 2x internal oversampling)
+// 4-pole transistor ladder (Huovilainen-style tanh stages, 2x internal oversampling)
 struct Ladder
 {
-    double sr = 44100; float s[4] {}, delay[4] {}; float g = 0, k = 0;
+    double sr = 44100; float s[4] {}; float g = 0, k = 0;
     void prepare (double rate) { sr = rate; reset(); }
-    void reset() { for (auto& v : s) v = 0; for (auto& v : delay) v = 0; }
+    void reset() { for (auto& v : s) v = 0; }
     void set (float cutoffHz, float resonance)
     {
         float fc = juce::jlimit (20.0f, (float) sr * 0.45f, cutoffHz) / (float) (sr * 2.0);
@@ -101,53 +110,55 @@ struct Ladder
             s[3] += g * (fastTanh (s[2]) - s[3]);
             out = s[3];
         }
-        return out * (1.0f + k * 0.35f); // resonance level compensation
+        return out * (1.0f + k * 0.35f);
     }
 };
 
 class Voice
 {
 public:
-    void prepare (double rate) { sr = rate; ladder.prepare (rate); fEnv.sr = rate; aEnv.sr = rate; lfo.setRate (4, rate); }
+    void prepare (double rate) { sr = rate; ladder.prepare (rate); fEnv.sr = rate; aEnv.sr = rate; }
 
     void noteOn (int midiNote, float velocity, const SynthParams& p, float glideFrom)
     {
-        note = midiNote; vel = velocity; active = true;
+        note = midiNote; vel = velocity; active = true; sustained = false; age = 0;
         targetFreq = (float) juce::MidiMessage::getMidiNoteInHertz (midiNote);
         curFreq = (p.glide > 0.001f && glideFrom > 0) ? glideFrom : targetFreq;
-        fEnv = { }; aEnv = { }; fEnv.sr = sr; aEnv.sr = sr;
+        fEnv = {}; aEnv = {}; fEnv.sr = sr; aEnv.sr = sr;
         fEnv.a = p.fA; fEnv.d = p.fD; fEnv.s = p.fS; fEnv.r = p.fR;
         aEnv.a = p.aA; aEnv.d = p.aD; aEnv.s = p.aS; aEnv.r = p.aR;
         fEnv.noteOn(); aEnv.noteOn();
-        juce::Random rnd; for (auto& o : osc) o.phase = rnd.nextFloat(); // free-running feel
+        juce::Random rnd; for (auto& o : osc) { o.phase = rnd.nextFloat(); o.modPhase = 0; }
     }
-    void noteOff() { fEnv.noteOff(); aEnv.noteOff(); }
+    void noteOff()  { fEnv.noteOff(); aEnv.noteOff(); sustained = false; }
     bool isActive() const { return active; }
+    bool isReleasing() const { return aEnv.stage == ADSR::Release; }
     int  getNote() const { return note; }
-    float currentFreq() const { return curFreq; }
+    bool sustained = false;   // held by the sustain pedal
+    juce::uint32 age = 0;
 
-    inline float render (const SynthParams& p, float lfoVal)
+    inline float render (const SynthParams& p, float lfoVal, float globalPitch)
     {
         if (! active) return 0.0f;
-        // glide
+        ++age;
         if (p.glide > 0.001f) curFreq += (targetFreq - curFreq) * (1.0f - std::exp (-1.0f / (p.glide * (float) sr)));
         else curFreq = targetFreq;
-        float pitchMod = std::pow (2.0f, lfoVal * p.lfoToPitch * 0.5f / 12.0f);
-        float f = curFreq * pitchMod;
+        float f = curFreq * globalPitch * std::pow (2.0f, lfoVal * p.lfoToPitch * 0.5f / 12.0f);
         float det2 = std::pow (2.0f, (p.osc2Detune / 1200.0f) + p.osc2Oct);
         float det3 = std::pow (2.0f, (p.osc3Detune / 1200.0f) + p.osc3Oct);
-        osc[0].setFreq (f, sr); osc[1].setFreq (f * det2, sr); osc[2].setFreq (f * det3, sr);
         float spread = p.fat * 0.012f;
-        osc[3].setFreq (f * (1.0f + spread), sr); osc[4].setFreq (f * (1.0f - spread), sr);
-
-        float x = osc[0].next (p.osc1Wave, p.pw, tri[0]) * p.osc1Lvl
-                + osc[1].next (p.osc2Wave, p.pw, tri[1]) * p.osc2Lvl
-                + osc[2].next (p.osc3Wave, p.pw, tri[2]) * p.osc3Lvl;
-        if (p.fat > 0.001f)
-            x += (osc[3].next (p.osc1Wave, p.pw, tri[3]) + osc[4].next (p.osc1Wave, p.pw, tri[4])) * p.osc1Lvl * p.fat * 0.6f;
-        x *= 0.35f;
+        osc[0].inc = f / (float) sr; osc[1].inc = f * det2 / (float) sr; osc[2].inc = f * det3 / (float) sr;
+        osc[3].inc = f * (1.0f + spread) / (float) sr; osc[4].inc = f * (1.0f - spread) / (float) sr;
 
         float fe = fEnv.next();
+        float fmIdx = p.fm * (0.25f + 0.75f * fe);
+        float x = osc[0].next (p.osc1Wave, p.pw, fmIdx, p.fmRatio) * p.osc1Lvl
+                + osc[1].next (p.osc2Wave, p.pw, fmIdx, p.fmRatio) * p.osc2Lvl
+                + osc[2].next (p.osc3Wave, p.pw, fmIdx, p.fmRatio) * p.osc3Lvl;
+        if (p.fat > 0.001f)
+            x += (osc[3].next (p.osc1Wave, p.pw, fmIdx, p.fmRatio) + osc[4].next (p.osc1Wave, p.pw, fmIdx, p.fmRatio)) * p.osc1Lvl * p.fat * 0.6f;
+        x *= 0.35f;
+
         float keyT = std::pow (2.0f, (float) (note - 60) / 12.0f * p.keyTrack);
         float cutoff = p.cutoff * keyT * std::pow (2.0f, fe * p.envAmt * 6.0f + lfoVal * p.lfoToCutoff * 3.0f);
         ladder.set (cutoff, p.reso);
@@ -161,8 +172,70 @@ public:
 private:
     double sr = 44100; bool active = false; int note = 60; float vel = 1;
     float targetFreq = 440, curFreq = 440;
-    Oscillator osc[5]; float tri[5] {};
-    Ladder ladder; ADSR fEnv, aEnv; LFO lfo;
+    Oscillator osc[5];
+    Ladder ladder; ADSR fEnv, aEnv;
+};
+
+// ---------------------------------------------------------------------------------------------
+// Texture stage
+// ---------------------------------------------------------------------------------------------
+struct Texture
+{
+    double sr = 44100;
+    // wow & flutter
+    float wowPhase = 0, flutterPhase = 0, walk = 0; juce::Random rng;
+    // lo-fi
+    float holdL = 0, holdR = 0, holdAcc = 0;
+    OnePole muffleL1, muffleL2, muffleR1, muffleR2, hissLP, tapePreL, tapePreR;
+    DCBlock dcL, dcR;
+
+    void prepare (double rate)
+    {
+        sr = rate; hissLP.setLowpass (5000.0f, rate); tapePreL.setLowpass (3000.0f, rate); tapePreR.setLowpass (3000.0f, rate);
+        setMuffle (16000.0f);
+    }
+    void setMuffle (float hz) { for (auto* f : { &muffleL1, &muffleL2, &muffleR1, &muffleR2 }) f->setLowpass (hz, sr); }
+
+    // Global pitch factor for this sample: slow wow (sine + random walk) and fast flutter, both scaled by `wobble`.
+    inline float pitchFactor (float wobble)
+    {
+        wowPhase += 0.55f / (float) sr; if (wowPhase >= 1.0f) wowPhase -= 1.0f;
+        flutterPhase += 6.8f / (float) sr; if (flutterPhase >= 1.0f) flutterPhase -= 1.0f;
+        walk += (rng.nextFloat() - 0.5f) * 0.0025f; walk *= 0.99995f; walk = juce::jlimit (-1.0f, 1.0f, walk);
+        float wow = 0.6f * std::sin (wowPhase * 2.0f * kPi) + 0.7f * walk;
+        float flutter = std::sin (flutterPhase * 2.0f * kPi);
+        float cents = wobble * (34.0f * wow + 5.0f * flutter * wobble);
+        return std::pow (2.0f, cents / 1200.0f);
+    }
+
+    // 12-bit / sample-rate crunch -> muffle -> tape saturation -> hiss
+    inline void lofi (float& l, float& r, float amt)
+    {
+        if (amt > 0.001f)
+        {
+            // sample-and-hold decimation: effective rate slides from full down to ~7 kHz
+            float ratio = 1.0f + amt * amt * ((float) sr / 7000.0f - 1.0f);
+            holdAcc += 1.0f;
+            if (holdAcc >= ratio)
+            {
+                holdAcc -= ratio;
+                float bits = 16.0f - amt * 8.0f;                     // 16 -> 8 bits
+                float q = std::pow (2.0f, bits - 1.0f);
+                float dither = (rng.nextFloat() - 0.5f) / q;
+                holdL = std::round ((l + dither) * q) / q; holdR = std::round ((r + dither) * q) / q;
+            }
+            l = holdL; r = holdR;
+            // tape: HF pre-emphasis into tanh so the top squashes first, then level restore
+            float pl = l + 0.5f * (l - tapePreL.lp (l)), pr = r + 0.5f * (r - tapePreR.lp (r));
+            float d = 1.0f + amt * 2.5f;
+            l = fastTanh (pl * d) / std::pow (d, 0.7f); r = fastTanh (pr * d) / std::pow (d, 0.7f);
+            // hiss
+            float h = hissLP.lp (rng.nextFloat() * 2.0f - 1.0f) * amt * amt * 0.004f;
+            l += h; r += h;
+        }
+        l = muffleL2.lp (muffleL1.lp (l)); r = muffleR2.lp (muffleR1.lp (r));
+        l = dcL.process (l); r = dcR.process (r);
+    }
 };
 
 class SynthEngine
@@ -174,17 +247,27 @@ public:
         sr = rate; for (auto& v : voices) v.prepare (rate);
         lfo.setRate (4, rate);
         juce::dsp::ProcessSpec spec { rate, (juce::uint32) maxBlock, 2 };
-        chorus.prepare (spec); chorus.setCentreDelay (12.0f); chorus.setDepth (0.25f); chorus.setRate (0.35f); chorus.setFeedback (0.0f);
+        haze.prepare (spec); haze.setCentreDelay (9.0f); haze.setDepth (0.45f); haze.setRate (0.28f); haze.setFeedback (0.0f);
         delay.prepare (spec); delay.setMaximumDelayInSamples ((int) rate * 2);
-        delayFb[0] = delayFb[1] = 0;
+        delayModLFO.setRate (0.31f, rate);
+        delayLP[0].setLowpass (3500.0f, rate); delayLP[1].setLowpass (3500.0f, rate);
+        texture.prepare (rate);
+        room.prepare (rate, maxBlock);
+        roomBuf.setSize (2, maxBlock);
+        gateEnv.setLowpass (18.0f, rate);
         hp[0].setLowpass (25.0f, rate); hp[1].setLowpass (25.0f, rate);
+        pitchSm.setTime (0.02f, rate); pitchSm.reset (1.0f);
     }
 
-    void setParams (const SynthParams& p, float chorusMix, float delayTime, float delayFbAmt, float delayMix)
+    void setParams (const SynthParams& p)
     {
         params = p; lfo.setRate (p.lfoRate, sr);
-        chorusMixV = chorusMix; delayTimeS = delayTime; delayFbV = delayFbAmt; delayMixV = delayMix;
-        chorus.setMix (chorusMix);
+        haze.setMix (p.haze * 0.5f); haze.setDepth (0.25f + 0.5f * p.haze);
+        texture.setMuffle (juce::jmap (p.lofi, 0.0f, 1.0f, 16000.0f, 2200.0f));
+        aura::ReverbEngine::Params rp;
+        rp.size = 0.22f; rp.decaySec = 0.35f + 0.5f * p.room; rp.damp = 0.7f; rp.lowcutHz = 200; rp.diffusion = 0.9f;
+        rp.modRate = 0.4f; rp.modDepth = 0.3f; rp.width = 1.0f; rp.colour = aura::ReverbEngine::Vintage; rp.predelayMs = 8.0f;
+        room.setParams (rp);
     }
 
     void handleMidi (const juce::MidiMessage& m)
@@ -193,60 +276,83 @@ public:
         {
             float glideFrom = lastFreq;
             Voice* v = nullptr;
-            if (params.mono) { v = &voices[0]; for (auto& o : voices) if (&o != v) o.noteOff(); }
+            if (params.mono) { v = &voices[0]; }
             else
             {
                 for (auto& o : voices) if (! o.isActive()) { v = &o; break; }
-                if (! v) v = &voices[(size_t) (steal++ % kVoices)];
+                if (! v) { v = &voices[0]; for (auto& o : voices) if (o.age > v->age && (o.isReleasing() || ! v->isReleasing())) v = &o; }
             }
             v->noteOn (m.getNoteNumber(), m.getFloatVelocity(), params, glideFrom);
             lastFreq = (float) juce::MidiMessage::getMidiNoteInHertz (m.getNoteNumber());
-            held.push_back (m.getNoteNumber());
         }
-        else if (m.isNoteOff() || m.isAllNotesOff())
+        else if (m.isNoteOff())
         {
-            held.erase (std::remove (held.begin(), held.end(), m.getNoteNumber()), held.end());
             for (auto& v : voices)
-                if (v.isActive() && (v.getNote() == m.getNoteNumber() || m.isAllNotesOff())) v.noteOff();
+                if (v.isActive() && v.getNote() == m.getNoteNumber()) { if (pedal) v.sustained = true; else v.noteOff(); }
         }
+        else if (m.isAllNotesOff() || m.isAllSoundOff()) { for (auto& v : voices) v.noteOff(); }
+        else if (m.isSustainPedalOn()) pedal = true;
+        else if (m.isSustainPedalOff()) { pedal = false; for (auto& v : voices) if (v.sustained) v.noteOff(); }
         else if (m.isPitchWheel()) bend = (float) (m.getPitchWheelValue() - 8192) / 8192.0f;
     }
 
     void render (float* L, float* R, int n)
     {
+        const float staticPitch = std::pow (2.0f, (params.tune + bend * 2.0f) / 12.0f);
         for (int i = 0; i < n; ++i)
         {
             float lv = lfo.sine();
+            float gp = pitchSm.process (staticPitch) * texture.pitchFactor (params.wobble);
             float mix = 0;
-            for (auto& v : voices) mix += v.render (params, lv);
+            for (auto& v : voices) mix += v.render (params, lv, gp);
             mix = fastTanh (mix * (1.0f + params.drive * 3.0f)) * (1.0f / (1.0f + params.drive));
-            mix = hp[0].hp (mix);
-            L[i] = mix; R[i] = mix;
+            float l = mix, r = mix;
+            texture.lofi (l, r, params.lofi);
+            L[i] = hp[0].hp (l); R[i] = hp[1].hp (r);
         }
         float* chans[2] = { L, R };
         juce::dsp::AudioBlock<float> blk (chans, 2, (size_t) n);
-        if (chorusMixV > 0.001f) chorus.process (juce::dsp::ProcessContextReplacing<float> (blk));
-        if (delayMixV > 0.001f)
+        if (params.haze > 0.001f) haze.process (juce::dsp::ProcessContextReplacing<float> (blk));
+
+        // dirty gated room: short vintage reverb, gated by the dry envelope (classic 80s "slap room")
+        if (params.room > 0.001f)
         {
-            float dSamps = juce::jlimit (1.0f, (float) sr * 1.99f, delayTimeS * (float) sr);
+            roomBuf.setSize (2, n, false, false, true);
+            room.process (L, R, roomBuf.getWritePointer (0), roomBuf.getWritePointer (1), n);
+            const float* wl = roomBuf.getReadPointer (0); const float* wr = roomBuf.getReadPointer (1);
             for (int i = 0; i < n; ++i)
             {
-                float dl = delay.popSample (0, dSamps), dr = delay.popSample (1, dSamps * 1.5f > (float) sr * 1.99f ? dSamps : dSamps * 1.5f);
-                delay.pushSample (0, L[i] + dl * delayFbV);
-                delay.pushSample (1, R[i] + dr * delayFbV);
-                L[i] += dl * delayMixV; R[i] += dr * delayMixV;
+                float env = gateEnv.lp (std::abs (L[i]) + std::abs (R[i]));
+                float gate = juce::jlimit (0.0f, 1.0f, (env - 0.004f) * 60.0f);
+                float g = params.room * 0.9f * gate;
+                L[i] += wl[i] * g; R[i] += wr[i] * g;
             }
         }
-        else { for (int i = 0; i < n; ++i) { delay.pushSample (0, L[i]); delay.pushSample (1, R[i]); } }
+
+        // modulated tape delay
+        if (params.delayMix > 0.001f)
+        {
+            float base = juce::jlimit (1.0f, (float) sr * 1.9f, params.delayTime * (float) sr);
+            for (int i = 0; i < n; ++i)
+            {
+                float mod = 1.0f + 0.004f * delayModLFO.sine() * (0.3f + params.wobble);
+                float dl = delay.popSample (0, base * mod), dr = delay.popSample (1, base * mod * 1.003f);
+                dl = delayLP[0].lp (dl); dr = delayLP[1].lp (dr);
+                delay.pushSample (0, fastTanh (L[i] + dl * params.delayFb));
+                delay.pushSample (1, fastTanh (R[i] + dr * params.delayFb));
+                L[i] += dl * params.delayMix; R[i] += dr * params.delayMix;
+            }
+        }
+        else for (int i = 0; i < n; ++i) { delay.pushSample (0, L[i]); delay.pushSample (1, R[i]); }
     }
 
     int activeVoices() const { int c = 0; for (auto& v : voices) c += v.isActive(); return c; }
 
 private:
-    double sr = 44100; SynthParams params; std::array<Voice, kVoices> voices; int steal = 0; float lastFreq = 0; float bend = 0;
-    std::vector<int> held; LFO lfo; OnePole hp[2];
-    juce::dsp::Chorus<float> chorus; float chorusMixV = 0;
+    double sr = 44100; SynthParams params; std::array<Voice, kVoices> voices; float lastFreq = 0; float bend = 0; bool pedal = false;
+    LFO lfo, delayModLFO; OnePole hp[2], delayLP[2], gateEnv; Smooth pitchSm;
+    juce::dsp::Chorus<float> haze;
     juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Linear> delay { 96000 * 2 };
-    float delayFb[2] {}; float delayTimeS = 0.4f, delayFbV = 0.3f, delayMixV = 0;
+    Texture texture; aura::ReverbEngine room; juce::AudioBuffer<float> roomBuf;
 };
 } // namespace mcgee

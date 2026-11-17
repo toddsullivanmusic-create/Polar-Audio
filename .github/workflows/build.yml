@@ -1,0 +1,66 @@
+name: Build plugins
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  macos:
+    name: macOS — AU + VST3 (universal)
+    runs-on: macos-14
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DPOLAR_BUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build --config Release -j3
+
+      - name: Engine tests (every factory preset through processBlock)
+        run: |
+          mkdir -p build/renders
+          for t in TestAura TestGlow TestMcGee TestSanctuary; do
+            ./build/Tests/${t}_artefacts/Release/$t build/renders
+          done
+
+      - name: Audio Unit validation (auval, exactly what Logic runs)
+        run: |
+          # COPY_PLUGIN_AFTER_BUILD already placed the .component bundles in ~/Library/Audio/Plug-Ins/Components
+          ls -la ~/Library/Audio/Plug-Ins/Components
+          killall -9 AudioComponentRegistrar 2>/dev/null || true
+          auval -v aufx Aur1 Polr
+          auval -v aufx Glw1 Polr
+          auval -v aumu McG1 Polr
+          auval -v aumu Snc1 Polr
+
+      - name: Package
+        run: |
+          set -e
+          mkdir -p dist/Components dist/VST3
+          for p in Aura Glow McGee Sanctuary; do
+            cp -R build/Plugins/$p/${p}_artefacts/Release/AU/$p.component dist/Components/
+            cp -R build/Plugins/$p/${p}_artefacts/Release/VST3/$p.vst3 dist/VST3/
+          done
+          # ad-hoc sign every bundle so Apple Silicon loads them; the install script strips quarantine
+          for b in dist/Components/*.component dist/VST3/*.vst3; do codesign --force --deep -s - "$b"; done
+          cp Installer/Install\ Polar\ Plugins.command dist/
+          cp Installer/INSTALL.txt dist/
+          chmod +x "dist/Install Polar Plugins.command"
+          cd dist && zip -ry ../PolarAudio-macOS.zip . && cd ..
+          ls -la PolarAudio-macOS.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PolarAudio-macOS
+          path: PolarAudio-macOS.zip
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: PolarAudio-macOS.zip
+          generate_release_notes: true

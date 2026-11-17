@@ -4,11 +4,11 @@ McGeeEditor::McGeeEditor (McGeeProcessor& p) : AudioProcessorEditor (p), proc (p
 {
     setLookAndFeel (&lnf);
     addAndMakeVisible (backdrop); addAndMakeVisible (header);
-    for (auto* c : { &oscPanel, &filterPanel, &envPanel, &modPanel, &fxPanel }) addAndMakeVisible (c);
+    for (auto* c : { &oscPanel, &filterPanel, &envPanel, &modPanel, &texturePanel, &fxPanel }) addAndMakeVisible (c);
     addAndMakeVisible (scope);
     for (auto* c : { &w1, &w2, &w3, &o2, &o3 }) addAndMakeVisible (c);
-    for (auto* k : { &l1, &l2, &l3, &d2, &d3, &pw, &fat, &cutoff, &reso, &envAmt, &keyTrack, &fDrive, &fA, &fD, &fS, &fR, &aA, &aD, &aS, &aR,
-                     &lfoRate, &lfoPitch, &lfoCutoff, &glide, &drive, &chorus, &delayTime, &delayFb, &delayMix, &volume })
+    for (auto* k : { &l1, &l2, &l3, &d2, &d3, &pw, &fat, &fm, &fmRatio, &cutoff, &reso, &envAmt, &keyTrack, &fDrive, &fA, &fD, &fS, &fR, &aA, &aD, &aS, &aR,
+                     &lfoRate, &lfoPitch, &lfoCutoff, &glide, &tune, &wobble, &lofi, &haze, &room, &drive, &delayTime, &delayFb, &delayMix, &volume })
         addAndMakeVisible (k);
     addAndMakeVisible (mono); addAndMakeVisible (meter);
     keyboard.setColour (juce::MidiKeyboardComponent::whiteNoteColourId, theme.bg2.brighter (0.6f));
@@ -22,9 +22,9 @@ McGeeEditor::McGeeEditor (McGeeProcessor& p) : AudioProcessorEditor (p), proc (p
     proc.presets.populate (header.presetBox);
     header.abButton.onClick = [this] { ab.toggle (proc.apvts); };
     setResizable (true, true);
-    setResizeLimits (980, 600, 1600, 980);
-    getConstrainer()->setFixedAspectRatio (1080.0 / 660.0);
-    setSize (1080, 660);
+    setResizeLimits (1000, 640, 1700, 1088);
+    getConstrainer()->setFixedAspectRatio (1120.0 / 716.0);
+    setSize (1120, 716);
 }
 
 McGeeEditor::~McGeeEditor() { setLookAndFeel (nullptr); }
@@ -34,43 +34,39 @@ void McGeeEditor::resized()
     auto r = getLocalBounds();
     backdrop.setBounds (r);
     header.setBounds (r.removeFromTop (56));
-    keyboard.setBounds (r.removeFromBottom (64).reduced (14, 6));
+    keyboard.setBounds (r.removeFromBottom (60).reduced (14, 4));
     r.reduce (14, 10);
     const int gap = 10;
 
-    // Row 1: oscillators (wide) + scope
-    auto row1 = r.removeFromTop ((int) (r.getHeight() * 0.42f));
-    scope.setBounds (row1.removeFromRight ((int) (row1.getWidth() * 0.22f)));
+    // Row 1: oscillators + scope
+    auto row1 = r.removeFromTop ((int) (r.getHeight() * 0.36f));
+    scope.setBounds (row1.removeFromRight ((int) (row1.getWidth() * 0.2f)));
     row1.removeFromRight (gap);
     oscPanel.setBounds (row1);
     auto oc = oscPanel.content().translated (oscPanel.getX(), oscPanel.getY());
     int colW = oc.getWidth() / 3;
-    auto col = [&] (lumen::Choice& wave, lumen::Choice* oct, lumen::Knob& lvl, lumen::Knob* det, lumen::Knob* extra)
+    auto col = [&] (polar::Choice& wave, polar::Choice* oct, std::initializer_list<polar::Knob*> knobs)
     {
         auto c = oc.removeFromLeft (colW).reduced (4, 0);
         auto top = c.removeFromTop (46);
         if (oct) { oct->setBounds (top.removeFromRight (64)); top.removeFromRight (6); }
         wave.setBounds (top);
-        c.removeFromTop (4);
-        int n = 1 + (det != nullptr) + (extra != nullptr);
-        int kw = c.getWidth() / n;
-        lvl.setBounds (c.removeFromLeft (kw));
-        if (det) det->setBounds (c.removeFromLeft (kw));
-        if (extra) extra->setBounds (c.removeFromLeft (kw));
+        c.removeFromTop (2);
+        int kw = c.getWidth() / (int) knobs.size();
+        for (auto* k : knobs) k->setBounds (c.removeFromLeft (kw));
     };
-    col (w1, nullptr, l1, &pw, &fat);
-    col (w2, &o2, l2, &d2, nullptr);
-    col (w3, &o3, l3, &d3, nullptr);
+    col (w1, nullptr, { &l1, &pw, &fat, &fm, &fmRatio });
+    col (w2, &o2, { &l2, &d2 });
+    col (w3, &o3, { &l3, &d3 });
 
     r.removeFromTop (gap);
     // Row 2: filter | envelopes
-    auto row2 = r.removeFromTop ((int) (r.getHeight() * 0.5f));
+    auto row2 = r.removeFromTop ((int) (r.getHeight() * 0.48f));
     filterPanel.setBounds (row2.removeFromLeft ((int) (row2.getWidth() * 0.42f)));
     row2.removeFromLeft (gap);
     envPanel.setBounds (row2);
     auto fc = filterPanel.content().translated (filterPanel.getX(), filterPanel.getY());
-    auto big = fc.removeFromLeft ((int) (fc.getWidth() * 0.3f));
-    cutoff.setBounds (big);
+    cutoff.setBounds (fc.removeFromLeft ((int) (fc.getWidth() * 0.3f)));
     int fw = fc.getWidth() / 4;
     for (auto* k : { &reso, &envAmt, &keyTrack, &fDrive }) k->setBounds (fc.removeFromLeft (fw).reduced (2));
     auto ec = envPanel.content().translated (envPanel.getX(), envPanel.getY());
@@ -80,18 +76,22 @@ void McGeeEditor::resized()
     for (auto* k : { &aA, &aD, &aS, &aR }) k->setBounds (ec.removeFromLeft (ew).reduced (2));
 
     r.removeFromTop (gap);
-    // Row 3: modulation | effects
-    modPanel.setBounds (r.removeFromLeft ((int) (r.getWidth() * 0.42f)));
-    r.removeFromLeft (gap);
+    // Row 3: modulation | texture | tape delay & output
+    int w3 = (r.getWidth() - 2 * gap);
+    modPanel.setBounds (r.removeFromLeft ((int) (w3 * 0.34f))); r.removeFromLeft (gap);
+    texturePanel.setBounds (r.removeFromLeft ((int) (w3 * 0.30f))); r.removeFromLeft (gap);
     fxPanel.setBounds (r);
     auto mc = modPanel.content().translated (modPanel.getX(), modPanel.getY());
-    auto monoArea = mc.removeFromRight (80);
-    mono.setBounds (monoArea.removeFromTop (24).translated (0, 10));
-    int mw = mc.getWidth() / 4;
-    for (auto* k : { &lfoRate, &lfoPitch, &lfoCutoff, &glide }) k->setBounds (mc.removeFromLeft (mw).reduced (2));
+    auto monoArea = mc.removeFromRight (70);
+    mono.setBounds (monoArea.removeFromTop (24).translated (0, 12));
+    int mw = mc.getWidth() / 5;
+    for (auto* k : { &lfoRate, &lfoPitch, &lfoCutoff, &glide, &tune }) k->setBounds (mc.removeFromLeft (mw).reduced (1));
+    auto tc = texturePanel.content().translated (texturePanel.getX(), texturePanel.getY());
+    int tw = tc.getWidth() / 4;
+    for (auto* k : { &wobble, &lofi, &haze, &room }) k->setBounds (tc.removeFromLeft (tw).reduced (1));
     auto xc = fxPanel.content().translated (fxPanel.getX(), fxPanel.getY());
-    meter.setBounds (xc.removeFromRight (22));
+    meter.setBounds (xc.removeFromRight (20));
     xc.removeFromRight (6);
-    int xw = xc.getWidth() / 6;
-    for (auto* k : { &drive, &chorus, &delayTime, &delayFb, &delayMix, &volume }) k->setBounds (xc.removeFromLeft (xw).reduced (2));
+    int xw = xc.getWidth() / 5;
+    for (auto* k : { &drive, &delayTime, &delayFb, &delayMix, &volume }) k->setBounds (xc.removeFromLeft (xw).reduced (1));
 }

@@ -5,7 +5,7 @@
 class AuraVisual : public juce::Component, private juce::Timer
 {
 public:
-    AuraVisual (AuraProcessor& p, const lumen::Theme& t) : proc (p), theme (t) { setInterceptsMouseClicks (false, false); startTimerHz (30); }
+    AuraVisual (AuraProcessor& p, const polar::Theme& t) : proc (p), theme (t) { setInterceptsMouseClicks (false, false); startTimerHz (30); }
     void paint (juce::Graphics& g) override
     {
         auto b = getLocalBounds().toFloat();
@@ -38,12 +38,12 @@ public:
         }
         g.setColour (theme.textFaint);
         g.strokePath (curve, juce::PathStrokeType (1.5f));
-        g.setFont (lumen::uiFont (10.5f));
+        g.setFont (polar::uiFont (10.5f));
         g.drawText (juce::String (decay, 2) + " s", area.toNearestInt().removeFromTop (14), juce::Justification::topRight);
     }
 private:
     void timerCallback() override { float e = proc.tailEnergy.load(); smooth += (e - smooth) * (e > smooth ? 0.5f : 0.08f); repaint(); }
-    AuraProcessor& proc; const lumen::Theme& theme; float smooth = 0;
+    AuraProcessor& proc; const polar::Theme& theme; float smooth = 0;
 };
 
 class AuraEditor : public juce::AudioProcessorEditor
@@ -54,18 +54,18 @@ public:
     void resized() override;
 private:
     AuraProcessor& proc;
-    lumen::Theme theme = lumen::Theme::withAccent (juce::Colour (0xff5b8cff));
-    lumen::LookAndFeel lnf { theme };
-    lumen::Backdrop backdrop { theme, &proc.tailEnergy };
-    lumen::Header header { theme, "AURA", "Algorithmic Reverb" };
-    lumen::Panel spacePanel { theme, "Space" }, tonePanel { theme, "Tone" }, motionPanel { theme, "Motion" }, outPanel { theme, "Output" };
-    lumen::Knob size { proc.apvts, ID::size, "Size" }, decay { proc.apvts, ID::decay, "Decay" }, predelay { proc.apvts, ID::predelay, "Pre-delay" },
+    polar::Theme theme = polar::Theme::withAccent (juce::Colour (0xff5b8cff));
+    polar::LookAndFeel lnf { theme };
+    polar::Backdrop backdrop { theme, &proc.tailEnergy };
+    polar::Header header { theme, "AURA", "Algorithmic Reverb" };
+    polar::Panel spacePanel { theme, "Space" }, tonePanel { theme, "Tone" }, motionPanel { theme, "Motion" }, outPanel { theme, "Output" };
+    polar::Knob size { proc.apvts, ID::size, "Size" }, decay { proc.apvts, ID::decay, "Decay" }, predelay { proc.apvts, ID::predelay, "Pre-delay" },
                 diffusion { proc.apvts, ID::diffusion, "Diffusion" }, damp { proc.apvts, ID::damp, "Damping" }, lowcut { proc.apvts, ID::lowcut, "Low Cut" },
                 modRate { proc.apvts, ID::modRate, "Rate" }, modDepth { proc.apvts, ID::modDepth, "Depth" }, shimmer { proc.apvts, ID::shimmer, "Shimmer" },
                 width { proc.apvts, ID::width, "Width" }, mix { proc.apvts, ID::mix, "Mix" }, duck { proc.apvts, ID::duck, "Duck" }, output { proc.apvts, ID::output, "Output", true };
-    lumen::Choice colour { proc.apvts, ID::colour, "Colour circuit" };
-    lumen::Toggle freeze { proc.apvts, ID::freeze, "Freeze" };
-    lumen::Meter meter { theme, proc.meterL, proc.meterR };
+    polar::Choice colour { proc.apvts, ID::colour, "Colour circuit" };
+    polar::Toggle freeze { proc.apvts, ID::freeze, "Freeze" };
+    polar::Meter meter { theme, proc.meterL, proc.meterR };
     AuraVisual visual { proc, theme };
-    lumen::ABState ab;
+    polar::ABState ab;
 };

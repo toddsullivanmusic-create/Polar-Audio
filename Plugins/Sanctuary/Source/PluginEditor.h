@@ -6,7 +6,7 @@
 class KeyWheel : public juce::Component, private juce::Timer, private juce::AudioProcessorValueTreeState::Listener
 {
 public:
-    KeyWheel (SanctuaryProcessor& p, const lumen::Theme& t) : proc (p), theme (t)
+    KeyWheel (SanctuaryProcessor& p, const polar::Theme& t) : proc (p), theme (t)
     {
         proc.apvts.addParameterListener (ID::key, this); proc.apvts.addParameterListener (ID::mode, this); proc.apvts.addParameterListener (ID::play, this);
         startTimerHz (30);
@@ -38,7 +38,7 @@ public:
             float am = (a0 + a1) * 0.5f;
             auto pt = c.getPointOnCircumference ((R + inner) * 0.5f, am + juce::MathConstants<float>::halfPi);
             g.setColour (active ? juce::Colours::white : theme.textDim);
-            g.setFont (lumen::uiFont (active ? 15.0f : 13.0f, active));
+            g.setFont (polar::uiFont (active ? 15.0f : 13.0f, active));
             g.drawText (names[i], (int) pt.x - 20, (int) pt.y - 10, 40, 20, juce::Justification::centred);
         }
         // crossfade ring
@@ -53,9 +53,9 @@ public:
         g.setColour (playing ? theme.accent.withAlpha (0.25f + 0.15f * breathe) : theme.bg1);
         g.fillEllipse (c.x - cr, c.y - cr, cr * 2, cr * 2);
         g.setColour (juce::Colours::white.withAlpha (0.1f)); g.drawEllipse (c.x - cr, c.y - cr, cr * 2, cr * 2, 1.0f);
-        g.setColour (theme.text); g.setFont (lumen::uiFont (cr * 0.55f, true));
+        g.setColour (theme.text); g.setFont (polar::uiFont (cr * 0.55f, true));
         g.drawText (juce::String (names[key]) + (minor ? "m" : ""), (int) (c.x - cr), (int) (c.y - cr * 0.55f), (int) (cr * 2), (int) (cr * 0.8f), juce::Justification::centred);
-        g.setColour (theme.textDim); g.setFont (lumen::uiFont (12.0f, true));
+        g.setColour (theme.textDim); g.setFont (polar::uiFont (12.0f, true));
         g.drawText (playing ? juce::String::fromUTF8 ("PLAYING  \xc2\xb7  tap to fade") : juce::String ("tap to play"), (int) (c.x - cr), (int) (c.y + cr * 0.2f), (int) (cr * 2), 20, juce::Justification::centred);
         // swell level arc inside the centre
         float sw = proc.swellLevel.load();
@@ -86,7 +86,7 @@ private:
     void set (const juce::String& id, float v) { if (auto* p = proc.apvts.getParameter (id)) { p->beginChangeGesture(); p->setValueNotifyingHost (p->convertTo0to1 (v)); p->endChangeGesture(); } }
     void parameterChanged (const juce::String&, float) override {}
     void timerCallback() override { t += 1.0f / 30.0f; repaint(); }
-    SanctuaryProcessor& proc; const lumen::Theme& theme; float t = 0; int hoverIdx = -1;
+    SanctuaryProcessor& proc; const polar::Theme& theme; float t = 0; int hoverIdx = -1;
 };
 
 class SanctuaryEditor : public juce::AudioProcessorEditor
@@ -98,18 +98,18 @@ public:
     void paint (juce::Graphics&) override;
 private:
     SanctuaryProcessor& proc;
-    lumen::Theme theme = lumen::Theme::withAccent (juce::Colour (0xffc9a7ff));
-    lumen::LookAndFeel lnf { theme };
-    lumen::Backdrop backdrop { theme, &proc.energy };
-    lumen::Header header { theme, "SANCTUARY", "Live Worship Pad Engine" };
+    polar::Theme theme = polar::Theme::withAccent (juce::Colour (0xffc9a7ff));
+    polar::LookAndFeel lnf { theme };
+    polar::Backdrop backdrop { theme, &proc.energy };
+    polar::Header header { theme, "SANCTUARY", "Live Worship Pad Engine" };
     KeyWheel wheel { proc, theme };
-    lumen::Panel soundPanel { theme, "Sound" }, livePanel { theme, "Live" }, spacePanel { theme, "Space & Output" };
-    lumen::Choice mode { proc.apvts, ID::mode, "Mode" }, style { proc.apvts, ID::style, "Style" }, motionBars { proc.apvts, ID::motionBars, "Motion cycle" };
-    lumen::Knob swell { proc.apvts, ID::swell, "Swell" }, air { proc.apvts, ID::air, "Air" }, depth { proc.apvts, ID::depth, "Depth" }, colour { proc.apvts, ID::colour, "Colour" },
+    polar::Panel soundPanel { theme, "Sound" }, livePanel { theme, "Live" }, spacePanel { theme, "Space & Output" };
+    polar::Choice mode { proc.apvts, ID::mode, "Mode" }, style { proc.apvts, ID::style, "Style" }, motionBars { proc.apvts, ID::motionBars, "Motion cycle" };
+    polar::Knob swell { proc.apvts, ID::swell, "Swell" }, air { proc.apvts, ID::air, "Air" }, depth { proc.apvts, ID::depth, "Depth" }, colour { proc.apvts, ID::colour, "Colour" },
                 motion { proc.apvts, ID::motion, "Motion" }, transition { proc.apvts, ID::transition, "Transition" }, fade { proc.apvts, ID::fade, "Fade" },
                 reverb { proc.apvts, ID::reverb, "Space" }, width { proc.apvts, ID::width, "Width" }, output { proc.apvts, ID::output, "Output", true };
-    lumen::Toggle midiKeys { proc.apvts, ID::midiKeys, "MIDI key switch" }, modWheel { proc.apvts, ID::modWheel, "Mod wheel = Swell" };
-    lumen::Meter meter { theme, proc.meterL, proc.meterR };
+    polar::Toggle midiKeys { proc.apvts, ID::midiKeys, "MIDI key switch" }, modWheel { proc.apvts, ID::modWheel, "Mod wheel = Swell" };
+    polar::Meter meter { theme, proc.meterL, proc.meterR };
     juce::Label midiHelp;
-    lumen::ABState ab;
+    polar::ABState ab;
 };

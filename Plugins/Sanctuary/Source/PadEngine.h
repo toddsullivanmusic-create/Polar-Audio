@@ -5,7 +5,7 @@
 
 namespace sanctuary
 {
-using namespace lumen::dsp;
+using namespace polar::dsp;
 
 enum Style { Warm = 0, Glass, Cathedral, Analog, Strings, kNumStyles };
 

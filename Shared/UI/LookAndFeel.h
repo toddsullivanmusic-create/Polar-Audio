@@ -1,7 +1,7 @@
 #pragma once
 #include "Theme.h"
 
-namespace lumen
+namespace polar
 {
 class LookAndFeel : public juce::LookAndFeel_V4
 {
@@ -180,4 +180,4 @@ public:
         return l;
     }
 };
-} // namespace lumen
+} // namespace polar

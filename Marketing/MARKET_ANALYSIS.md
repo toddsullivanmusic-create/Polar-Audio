@@ -1,4 +1,4 @@
-# Lumen Audio — Market Analysis (November 2026)
+# Polar Audio — Market Analysis (November 2026)
 
 > Purpose: decide which four plugins to build for maximum sellability in Logic Pro, and how to position them.
 > Method: public retailer charts and editorial "best of" lists, KVR community threads, market-research category data, and a scan of the worship-production vendor space. Retailer sales figures are not public; where a claim is an inference it is marked.
@@ -51,7 +51,7 @@ The brief asked for a "McGee"-style analog synth. McGEE is positioned as the *vi
 | GLOW (saturation) | $39 | $89 | |
 | McGEE (synth) | $69 | $129 | |
 | SANCTUARY (worship pads) | $49 | $99 | |
-| **Lumen Collection** | **$149** | **$299** | ~35 % off list |
+| **Polar Collection** | **$149** | **$299** | ~35 % off list |
 
 Rationale: intro prices sit under the Valhalla/Soundtoys psychological ceilings, list prices signal "premium", the bundle is the real product (bundles are 40–60 % of revenue for most boutique vendors). Run a 14-day free trial (iLok-free, email-based licence) — trials are the strongest conversion lever for sound-driven products.
 
