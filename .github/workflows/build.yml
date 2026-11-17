@@ -9,7 +9,7 @@ on:
 jobs:
   macos:
     name: macOS — AU + VST3 (universal)
-    runs-on: macos-14
+    runs-on: macos-latest
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
