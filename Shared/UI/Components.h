@@ -16,6 +16,7 @@ public:
         slider.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 72, 18);
         slider.setRotaryParameters (juce::MathConstants<float>::pi * 1.25f, juce::MathConstants<float>::pi * 2.75f, true);
         slider.setScrollWheelEnabled (true);
+        slider.setNumDecimalPlacesToDisplay (2);
         slider.setDoubleClickReturnValue (true, 0.0);
         if (bipolar) slider.getProperties().set ("bipolar", true);
         addAndMakeVisible (slider);

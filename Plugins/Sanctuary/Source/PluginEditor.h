@@ -56,7 +56,7 @@ public:
         g.setColour (theme.text); g.setFont (lumen::uiFont (cr * 0.55f, true));
         g.drawText (juce::String (names[key]) + (minor ? "m" : ""), (int) (c.x - cr), (int) (c.y - cr * 0.55f), (int) (cr * 2), (int) (cr * 0.8f), juce::Justification::centred);
         g.setColour (theme.textDim); g.setFont (lumen::uiFont (12.0f, true));
-        g.drawText (playing ? "PLAYING  ·  tap to fade" : "tap to play", (int) (c.x - cr), (int) (c.y + cr * 0.2f), (int) (cr * 2), 20, juce::Justification::centred);
+        g.drawText (playing ? juce::String::fromUTF8 ("PLAYING  \xc2\xb7  tap to fade") : juce::String ("tap to play"), (int) (c.x - cr), (int) (c.y + cr * 0.2f), (int) (cr * 2), 20, juce::Justification::centred);
         // swell level arc inside the centre
         float sw = proc.swellLevel.load();
         juce::Path sarc; float sr2 = cr - 6;

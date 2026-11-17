@@ -9,7 +9,7 @@ SanctuaryEditor::SanctuaryEditor (SanctuaryProcessor& p) : AudioProcessorEditor 
     for (auto* c : { &mode, &style, &motionBars }) addAndMakeVisible (c);
     for (auto* k : { &swell, &air, &depth, &colour, &motion, &transition, &fade, &reverb, &width, &output }) addAndMakeVisible (k);
     addAndMakeVisible (midiKeys); addAndMakeVisible (modWheel); addAndMakeVisible (meter);
-    midiHelp.setText ("MIDI:  C1-B1 major keys  ·  C2-B2 minor keys  ·  C3 play/stop  ·  D3 fade  ·  mod wheel = swell  ·  program change 0-23", juce::dontSendNotification);
+    midiHelp.setText (juce::String::fromUTF8 ("MIDI:  C1-B1 major keys  \xc2\xb7  C2-B2 minor keys  \xc2\xb7  C3 play/stop  \xc2\xb7  D3 fade  \xc2\xb7  mod wheel = swell  \xc2\xb7  program change 0-23"), juce::dontSendNotification);
     midiHelp.setFont (lumen::uiFont (11.0f)); midiHelp.setColour (juce::Label::textColourId, theme.textFaint);
     midiHelp.setJustificationType (juce::Justification::centred);
     addAndMakeVisible (midiHelp);

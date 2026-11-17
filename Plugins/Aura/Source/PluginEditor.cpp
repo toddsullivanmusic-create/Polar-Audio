@@ -40,9 +40,9 @@ void AuraEditor::resized()
 
     r.removeFromTop (10);
     auto bottom = r;
-    int w3 = (bottom.getWidth() - 20) / 3;
-    tonePanel.setBounds (bottom.removeFromLeft (w3)); bottom.removeFromLeft (10);
-    motionPanel.setBounds (bottom.removeFromLeft (w3)); bottom.removeFromLeft (10);
+    int usable = bottom.getWidth() - 20;
+    tonePanel.setBounds (bottom.removeFromLeft ((int) (usable * 0.26f))); bottom.removeFromLeft (10);
+    motionPanel.setBounds (bottom.removeFromLeft ((int) (usable * 0.29f))); bottom.removeFromLeft (10);
     outPanel.setBounds (bottom);
 
     auto tc = tonePanel.content().translated (tonePanel.getX(), tonePanel.getY());
@@ -59,10 +59,10 @@ void AuraEditor::resized()
     shimmer.setBounds (mc.reduced (4));
 
     auto oc = outPanel.content().translated (outPanel.getX(), outPanel.getY());
-    auto right = oc.removeFromRight (70);
+    auto right = oc.removeFromRight (96);
     freeze.setBounds (right.removeFromTop (24));
-    right.removeFromTop (6);
-    meter.setBounds (right.reduced (22, 0));
+    right.removeFromTop (8);
+    meter.setBounds (right.reduced (36, 0));
     int ow = oc.getWidth() / 4;
     width.setBounds (oc.removeFromLeft (ow).reduced (3));
     mix.setBounds (oc.removeFromLeft (ow).reduced (3));
