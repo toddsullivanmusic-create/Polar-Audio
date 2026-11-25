@@ -128,7 +128,7 @@ public:
                 float amt = params.shimmer * (params.freeze ? 0.15f : 1.0f);
                 for (int i = 0; i < 8; ++i)
                 {
-                    float head = juce::jlimit (0.02f, 0.35f, (1.0f - decayGain[i]) * 6.0f + 0.02f);
+                    float head = juce::jlimit (0.0f, 0.2f, (1.0f - decayGain[i]) * 0.45f);   // shimmer can never add more energy than the loop loses
                     fb[i] = fastTanh (fb[i] + ((i & 1) ? shimOutR : shimOutL) * amt * head);
                 }
             }

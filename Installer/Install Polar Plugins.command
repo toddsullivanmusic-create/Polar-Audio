@@ -28,12 +28,12 @@ done
 killall -9 AudioComponentRegistrar 2>/dev/null
 echo
 echo "Validating with Apple's auval (this is exactly what Logic runs)..."
-for spec in "aufx Aur1" "aufx Glw1" "aumu McG1" "aumu Snc1"; do
+for spec in "aufx Aur1" "aufx Glw1" "aumu McG1" "aumu Snc1" "aufx Prs1"; do
     if auval -v $spec Polr 2>&1 | grep -q "PASS"; then echo "  PASS  $spec"; else echo "  FAIL  $spec  (open Logic → Settings → Plug-in Manager → Reset & Rescan)"; fi
 done
 echo
 echo "Done. Open Logic Pro:"
-echo "  Effects:     Audio Units → Polar Audio → AURA / GLOW"
+echo "  Effects:     Audio Units → Polar Audio → AURA / GLOW / PRISM"
 echo "  Instruments: AU Instruments → Polar Audio → McGEE / SANCTUARY"
 echo "If they don't show up, Logic Pro → Settings → Plug-in Manager → select them → Reset & Rescan Selection."
 read -n 1 -s -r -p "Press any key to close."

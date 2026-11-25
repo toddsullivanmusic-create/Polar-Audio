@@ -35,6 +35,9 @@ int main (int argc, char** argv)
     presetCount = (int) dynamic_cast<McGeeProcessor*> (programs)->presets.factoryPresets.size();
    #elif POLAR_TEST_Sanctuary
     presetCount = (int) dynamic_cast<SanctuaryProcessor*> (programs)->presets.factoryPresets.size();
+   #elif POLAR_TEST_Prism
+    // every factory preset, then every effect type of every module at a hot setting (6 extra passes)
+    presetCount = (int) dynamic_cast<PrismProcessor*> (programs)->presets.factoryPresets.size() + 6;
    #endif
 
     bool ok = true;
@@ -46,6 +49,19 @@ int main (int argc, char** argv)
         dynamic_cast<GlowProcessor*> (programs)->presets.applyIndex (preset);
        #elif POLAR_TEST_McGee
         dynamic_cast<McGeeProcessor*> (programs)->presets.applyIndex (preset);
+       #elif POLAR_TEST_Prism
+        {
+            auto* pp = dynamic_cast<PrismProcessor*> (programs);
+            const int nf = (int) pp->presets.factoryPresets.size();
+            if (preset < nf) pp->presets.applyIndex (preset);
+            else
+                for (int m = 0; m < 4; ++m)
+                {
+                    auto set = [&] (const juce::String& suf, float v) { auto* prm = pp->apvts.getParameter (PID::m (m, suf)); prm->setValueNotifyingHost (prm->convertTo0to1 (v)); };
+                    set (PID::type, (float) (preset - nf)); set (PID::amount, 0.85f); set (PID::tweak, 0.6f); set (PID::tone, 0.7f);
+                    set (PID::mix, 0.6f); set (PID::on, 1.0f);
+                }
+        }
        #elif POLAR_TEST_Sanctuary
         auto* sp = dynamic_cast<SanctuaryProcessor*> (programs);
         sp->presets.applyIndex (preset);

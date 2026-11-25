@@ -5,6 +5,7 @@
 | 🔵 | **AURA** | Audio Unit effect | Algorithmic reverb: 8-line modulated FDN, 4 colour circuits (Modern / Vintage / Dark / Plate), shimmer, freeze, ducking, width |
 | 🟠 | **GLOW** | Audio Unit effect | 4× oversampled saturation: Tube / Tape / Transformer / Crunch circuits, 3-band Focus, Dynamics, tilt Tone, auto-gain |
 | 🟢 | **McGEE** | Audio Unit instrument | Lo-fi analog polysynth built for the "underwater" Mk.gee-style texture: 3 alias-free oscillators (+ FM Keys), transistor-ladder filter with drive, 16 voices, unison Fat, then a Texture stage — cassette **Wobble** (wow & flutter), **Lo-fi** (12-bit / sample-rate crunch, muffle, tape saturation, hiss), **Haze** chorus, dirty gated **Room**, modulated tape delay. Sustain pedal + pitch bend. |
+| 🌈 | **PRISM** | Audio Unit effect | Four-module multi-effect pedal: **Color** (Warm, Fuzz, Crush, Fold, Sweep, Squash) → **Motion** (Chorus, Vibrato, Phaser, Tremolo, Flanger, Detune) → **Space** (Echo, Ping, Reverse, Shimmer, Multi, Grain) → **Air** (Hall, Plate, Bloom, Spring, Cassette, Glitch). Reorderable chain, XY pad with tempo-synced gesture recorder, scene A/B morph, Dice with module locks, Freeze, ducking, trails, tempo sync. 2× linear-phase oversampled drive, Hermite-interpolated delays, click-free type crossfades. White pedal-style UI. |
 | 🟣 | **SANCTUARY** | Audio Unit instrument | Live worship pad engine: generated pads in any key, major/minor, 5 styles, seamless key crossfade, MIDI key switching, mod-wheel swell, one-tap fade, bar-synced motion, AURA reverb built in |
 
 All four share one design system (`Shared/UI`): dark-glass panels, glowing rotary arcs, iOS-style switches, a reactive particle/aurora backdrop, factory + user presets, A/B, resizable windows with locked aspect ratio.
@@ -22,7 +23,7 @@ Every push to `main` builds the Audio Units on a macOS runner, runs Apple's `auv
    cd "$(ls -d ~/Downloads/PolarAudio-macOS*/ | head -1)" && xattr -cr . && bash "Install Polar Plugins.command"
    ```
    (Alternative: *System Settings → Privacy & Security → Security → Open Anyway*.) On older macOS, just double-click **Install Polar Plugins.command**.
-3. Open Logic Pro. Effects: *Audio Units → Polar Audio → AURA / GLOW*. Instruments: *AU Instruments → Polar Audio → McGEE / SANCTUARY*.
+3. Open Logic Pro. Effects: *Audio Units → Polar Audio → AURA / GLOW / PRISM*. Instruments: *AU Instruments → Polar Audio → McGEE / SANCTUARY*.
 
 Details and troubleshooting in `Installer/INSTALL.txt`. Versioned releases are published for `v*` tags.
 
@@ -84,3 +85,13 @@ Docs/screenshots GUI captures
 - **C3** toggles play/stop, **D3** fades out over *Fade* seconds. **Mod wheel** = Swell. **Program change 0–23** = key/mode (for Planning Center / set-list controllers).
 - *Motion* moves the filter in time with Logic's tempo over 1–16 bars. *Air* adds the shimmer layer, *Depth* the sub, *Colour* the 3rd.
 - Put it on a software-instrument track, arm it, press Play once — it runs for the whole service.
+
+## PRISM — how it plays
+
+- **Four modules, 24 effects.** Each module has a type selector, a big **Amount** knob, **Tweak**, **Tone** and **Mix** (labels change with the effect), and a footswitch. Bypassed delays and reverbs keep ringing out (trails).
+- **Reorder the chain** with the ‹ › arrows on each module (all 24 orders; automatable as *Chain Order*).
+- **XY pad**: X pushes every module's Tweak, Y pushes every Amount (scaled by *Pad Depth*). Hit **REC** and move the puck: one loop (1–8 bars, locked to Logic's transport) is captured and plays back. Double-click the pad to recentre.
+- **Scenes**: dial a sound → **Set A**, dial another → **Set B**, then sweep the morph slider (automatable) between them.
+- **Dice** randomises every module that isn't **LOCK**ed; **Undo** takes it back.
+- **Freeze** holds the Space and Air tails indefinitely. **Duck** pushes delays and reverbs down while you play. **Tempo sync** snaps delay times to note values.
+- **Glitch** (Air) is a beat-repeater locked to the host grid: Chance, Slice length, and a pitch-falling Tape-stop amount.

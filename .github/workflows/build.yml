@@ -26,7 +26,7 @@ jobs:
       - name: Engine tests (every factory preset through processBlock)
         run: |
           mkdir -p build/renders
-          for t in TestAura TestGlow TestMcGee TestSanctuary; do
+          for t in TestAura TestGlow TestMcGee TestSanctuary TestPrism; do
             ./build/Tests/${t}_artefacts/Release/$t build/renders
           done
 
@@ -39,12 +39,13 @@ jobs:
           auval -v aufx Glw1 Polr
           auval -v aumu McG1 Polr
           auval -v aumu Snc1 Polr
+          auval -v aufx Prs1 Polr
 
       - name: Package
         run: |
           set -e
           mkdir -p dist/Components dist/VST3
-          for p in Aura Glow McGee Sanctuary; do
+          for p in Aura Glow McGee Sanctuary Prism; do
             cp -R build/Plugins/$p/${p}_artefacts/Release/AU/$p.component dist/Components/
             cp -R build/Plugins/$p/${p}_artefacts/Release/VST3/$p.vst3 dist/VST3/
           done
@@ -70,7 +71,7 @@ jobs:
           prerelease: true
           files: PolarAudio-macOS.zip
           body: |
-            Latest build of AURA, GLOW, McGEE and SANCTUARY from `main` (commit ${{ github.sha }}).
+            Latest build of AURA, GLOW, McGEE, SANCTUARY and PRISM from `main` (commit ${{ github.sha }}).
             Audio Units + VST3, universal (Apple Silicon + Intel), validated with `auval` on the build machine.
 
             **Install:** download `PolarAudio-macOS.zip`, unzip, double-click **Install Polar Plugins.command**, open Logic Pro.

@@ -59,7 +59,7 @@ function(polar_plugin NAME CODE DESC IS_SYNTH)
         PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_lto_flags juce::juce_recommended_warning_flags)
 endfunction()
 
-foreach(P Aura Glow McGee Sanctuary)
+foreach(P Aura Glow McGee Sanctuary Prism)
     add_subdirectory(Plugins/${P})
 endforeach()
 
