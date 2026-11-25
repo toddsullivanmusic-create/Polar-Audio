@@ -1,5 +1,6 @@
 #pragma once
 #include "UI/LookAndFeel.h"
+#include "Materials.h"
 
 namespace prism::ui
 {
@@ -44,7 +45,7 @@ public:
         setColour (juce::ComboBox::arrowColourId, Palette::ink2());
         setColour (juce::Label::textColourId, Palette::ink());
         setColour (juce::TextButton::textColourOffId, Palette::ink());
-        setColour (juce::TextButton::textColourOnId, juce::Colours::white);
+        setColour (juce::TextButton::textColourOnId, Palette::ink());
         setColour (juce::Slider::textBoxTextColourId, Palette::ink2());
     }
 
@@ -92,48 +93,84 @@ public:
         g.setColour (Palette::ink()); g.fillEllipse (dot.x - dr, dot.y - dr, dr * 2, dr * 2);
     }
 
+    // Hardware fader: recessed slot, machined cap with grip grooves
     void drawLinearSlider (juce::Graphics& g, int x, int y, int w, int h, float pos, float, float, juce::Slider::SliderStyle, juce::Slider& s) override
     {
         auto b = juce::Rectangle<float> ((float) x, (float) y, (float) w, (float) h);
-        auto track = b.withSizeKeepingCentre (b.getWidth(), 8.0f);
-        juce::ColourGradient grad (Palette::module (0), track.getX(), 0, Palette::module (3), track.getRight(), 0, false);
-        grad.addColour (0.35, Palette::module (1)); grad.addColour (0.7, Palette::module (2));
-        g.setColour (Palette::line()); g.fillRoundedRectangle (track, 4.0f);
-        g.setGradientFill (grad); g.fillRoundedRectangle (track.withRight (pos), 4.0f);
-        juce::Path knob; knob.addEllipse (pos - 10, track.getCentreY() - 10, 20, 20);
-        juce::DropShadow (juce::Colours::black.withAlpha (0.2f), 6, { 0, 2 }).drawForPath (g, knob);
-        g.setColour (juce::Colours::white); g.fillPath (knob);
-        g.setColour (Palette::ink()); g.fillEllipse (pos - 3, track.getCentreY() - 3, 6, 6);
+        auto slot = b.withSizeKeepingCentre (b.getWidth(), 6.0f);
+        g.setColour (juce::Colour (0xff15161a)); g.fillRoundedRectangle (slot, 3.0f);
+        mat::innerShadow (g, slot, 3.0f, 4.0f, 0.7f);
+        for (int i = 0; i <= 10; ++i)
+        {
+            const float tx = slot.getX() + slot.getWidth() * (float) i / 10.0f;
+            g.setColour (Palette::ink2().withAlpha (i % 5 == 0 ? 0.7f : 0.35f));
+            g.drawVerticalLine ((int) tx, slot.getBottom() + 5, slot.getBottom() + (i % 5 == 0 ? 11.0f : 8.0f));
+        }
+        auto cap = juce::Rectangle<float> (pos - 9, b.getCentreY() - 13, 18, 26);
+        juce::Path cp; cp.addRoundedRectangle (cap, 3.0f);
+        juce::DropShadow (juce::Colours::black.withAlpha (0.35f), 6, { 2, 4 }).drawForPath (g, cp);
+        g.setGradientFill (juce::ColourGradient (juce::Colour (0xfff4f4f2), cap.getX(), cap.getY(), juce::Colour (0xff9c9d9f), cap.getRight(), cap.getBottom(), false));
+        g.fillPath (cp);
+        for (int i = 0; i < 4; ++i)
+        {
+            const float gy = cap.getY() + 6 + i * 4.5f;
+            g.setColour (juce::Colours::black.withAlpha (0.3f)); g.drawHorizontalLine ((int) gy, cap.getX() + 3, cap.getRight() - 3);
+            g.setColour (juce::Colours::white.withAlpha (0.7f)); g.drawHorizontalLine ((int) gy + 1, cap.getX() + 3, cap.getRight() - 3);
+        }
+        g.setColour (juce::Colour (0xff1d1e24)); g.fillRect (cap.getCentreX() - 0.75f, cap.getY() + 2, 1.5f, cap.getHeight() - 4);
+        mat::bevel (g, cap, 3.0f, 1.2f);
         juce::ignoreUnused (s);
     }
 
+    // Hardware key: raised machined key; when latched it sits pressed in and its LED strip glows
     void drawButtonBackground (juce::Graphics& g, juce::Button& b, const juce::Colour&, bool over, bool down) override
     {
-        auto r = b.getLocalBounds().toFloat().reduced (0.5f);
+        auto r = b.getLocalBounds().toFloat().reduced (1.5f, 1.5f);
         const bool on = b.getToggleState();
+        const bool pressed = on || down;
         auto accent = b.findColour (juce::TextButton::buttonOnColourId);
-        auto base = on ? accent : Palette::well();
-        if (over) base = base.darker (0.04f);
-        if (down) base = base.darker (0.1f);
-        g.setColour (base); g.fillRoundedRectangle (r, r.getHeight() * 0.5f);
-        if (! on) { g.setColour (Palette::line()); g.drawRoundedRectangle (r, r.getHeight() * 0.5f, 1.0f); }
+        juce::Path key; key.addRoundedRectangle (r, 5.0f);
+        // well around the key
+        g.setColour (juce::Colours::black.withAlpha (0.16f)); g.fillRoundedRectangle (r.expanded (1.5f), 6.5f);
+        if (! pressed) juce::DropShadow (juce::Colours::black.withAlpha (over ? 0.32f : 0.26f), 5, { 0, 2 }).drawForPath (g, key);
+        auto top = pressed ? juce::Colour (0xffd9d8d4) : juce::Colour (0xfffbfbfa);
+        auto bot = pressed ? juce::Colour (0xffeeede9) : juce::Colour (0xffd6d5d1);
+        if (over && ! pressed) { top = top.brighter (0.05f); }
+        g.setGradientFill (juce::ColourGradient (top, r.getX(), r.getY(), bot, r.getX(), r.getBottom(), false));
+        g.fillPath (key);
+        if (pressed) mat::innerShadow (g, r, 5.0f, 5.0f, 0.3f);
+        else mat::bevel (g, r, 5.0f, 1.2f, 0.9f);
+        // LED strip
+        if (accent != juce::Colours::transparentBlack)
+        {
+            auto strip = juce::Rectangle<float> (r.getX() + 8, r.getY() + 3, r.getWidth() - 16, 2.5f);
+            if (on)
+            {
+                g.setColour (accent.withAlpha (0.35f)); g.fillRoundedRectangle (strip.expanded (2, 2), 3);
+                g.setColour (accent.brighter (0.2f));
+            }
+            else g.setColour (juce::Colour (0x22000000));
+            g.fillRoundedRectangle (strip, 1.25f);
+        }
     }
 
     juce::Font getTextButtonFont (juce::TextButton&, int h) override { return polar::uiFont (juce::jmin (13.0f, h * 0.5f), true); }
 
+    // Recessed display window
     void drawComboBox (juce::Graphics& g, int w, int h, bool, int, int, int, int, juce::ComboBox& box) override
     {
-        auto r = juce::Rectangle<float> (0, 0, (float) w, (float) h).reduced (0.5f);
-        g.setColour (Palette::well()); g.fillRoundedRectangle (r, h * 0.5f);
-        g.setColour (box.isMouseOver() ? Palette::ink3() : Palette::line()); g.drawRoundedRectangle (r, h * 0.5f, 1.0f);
+        auto r = juce::Rectangle<float> (0, 0, (float) w, (float) h).reduced (1.0f);
+        mat::glassBackground (g, r, 6.0f, Palette::module (1));
         juce::Path ch; const float cx = (float) w - 16.0f, cy = (float) h * 0.5f;
         ch.startNewSubPath (cx - 4, cy - 2); ch.lineTo (cx, cy + 2); ch.lineTo (cx + 4, cy - 2);
-        g.setColour (Palette::ink2()); g.strokePath (ch, juce::PathStrokeType (1.6f));
+        g.setColour (juce::Colours::white.withAlpha (box.isMouseOver() ? 0.9f : 0.6f)); g.strokePath (ch, juce::PathStrokeType (1.6f));
+        mat::glassOverlay (g, r, 6.0f);
     }
     void positionComboBoxText (juce::ComboBox& box, juce::Label& label) override
     {
         label.setBounds (14, 1, box.getWidth() - 34, box.getHeight() - 2);
         label.setFont (polar::uiFont (13.0f, true));
+        label.setColour (juce::Label::textColourId, juce::Colour (0xffe8f0ff));
     }
 
     void drawPopupMenuBackground (juce::Graphics& g, int w, int h) override
@@ -142,19 +179,39 @@ public:
         g.setColour (Palette::line()); g.drawRect (0, 0, w, h, 1);
     }
 
+    // Bat-lever toggle switch on a hex nut
     void drawToggleButton (juce::Graphics& g, juce::ToggleButton& b, bool over, bool) override
     {
         auto r = b.getLocalBounds().toFloat();
-        auto sw = juce::Rectangle<float> (r.getX(), r.getCentreY() - 10, 36, 20);
         const bool on = b.getToggleState();
+        const auto c = juce::Point<float> (r.getX() + 14, r.getCentreY());
+        // hex nut
+        juce::Path hex;
+        for (int i = 0; i < 6; ++i)
+        {
+            const float a = juce::MathConstants<float>::twoPi * (float) i / 6.0f + 0.52f;
+            const juce::Point<float> p (c.x + std::cos (a) * 10.5f, c.y + std::sin (a) * 10.5f);
+            i == 0 ? hex.startNewSubPath (p) : hex.lineTo (p);
+        }
+        hex.closeSubPath();
+        juce::DropShadow (juce::Colours::black.withAlpha (0.3f), 4, { 1, 2 }).drawForPath (g, hex);
+        g.setGradientFill (juce::ColourGradient (juce::Colour (0xfff1f1ef), c.x - 10, c.y - 10, juce::Colour (0xff8d8e90), c.x + 10, c.y + 10, false));
+        g.fillPath (hex);
+        g.setColour (juce::Colour (0xff3b3c40)); g.fillEllipse (c.x - 5, c.y - 5, 10, 10);
+        // lever (chrome bat) pointing up when on, down when off
+        const float dir = on ? -1.0f : 1.0f;
+        const auto tip = juce::Point<float> (c.x + 2.0f, c.y + dir * 16.0f);
+        juce::Path lever;
+        lever.startNewSubPath (c.x - 2.2f, c.y); lever.lineTo (tip.x - 3.2f, tip.y); lever.lineTo (tip.x + 3.2f, tip.y); lever.lineTo (c.x + 2.2f, c.y); lever.closeSubPath();
+        juce::DropShadow (juce::Colours::black.withAlpha (0.35f), 3, { 2, 2 }).drawForPath (g, lever);
+        g.setGradientFill (juce::ColourGradient (juce::Colour (0xffffffff), tip.x - 3, 0, juce::Colour (0xff777879), tip.x + 3, 0, false));
+        g.fillPath (lever);
+        g.setGradientFill (juce::ColourGradient (juce::Colours::white, tip.x - 3, tip.y - 3, juce::Colour (0xff8a8b8d), tip.x + 3, tip.y + 3, true));
+        g.fillEllipse (tip.x - 3.6f, tip.y - 3.6f, 7.2f, 7.2f);
         auto accent = b.findColour (juce::ToggleButton::tickColourId);
-        g.setColour (on ? accent : Palette::line().darker (over ? 0.08f : 0.0f));
-        g.fillRoundedRectangle (sw, 10.0f);
-        juce::Path k; k.addEllipse (on ? sw.getRight() - 18 : sw.getX() + 2, sw.getY() + 2, 16, 16);
-        juce::DropShadow (juce::Colours::black.withAlpha (0.2f), 3, { 0, 1 }).drawForPath (g, k);
-        g.setColour (juce::Colours::white); g.fillPath (k);
-        g.setColour (Palette::ink2()); g.setFont (polar::uiFont (12.0f, true));
-        g.drawText (b.getButtonText(), (int) sw.getRight() + 8, (int) r.getY(), (int) r.getWidth() - 44, (int) r.getHeight(), juce::Justification::centredLeft);
+        mat::led (g, { r.getX() + 36, r.getCentreY() }, 3.5f, accent, on);
+        mat::engraved (g, b.getButtonText().toUpperCase(), { r.getX() + 48, r.getY(), r.getWidth() - 48, r.getHeight() },
+                       polar::uiFont (11.0f, true), over ? Palette::ink() : Palette::ink2(), juce::Justification::centredLeft);
     }
 
     juce::Label* createSliderTextBox (juce::Slider& s) override

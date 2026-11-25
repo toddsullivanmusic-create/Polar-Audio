@@ -34,17 +34,22 @@ private:
     juce::TextButton recButton { "REC" }, playButton { "PLAY" }, clearButton { "CLEAR" };
     juce::ComboBox gestureLen;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> gestureLenAttach;
-    polar::Knob padDepth { proc.apvts, PID::padDepth, "Pad Depth" };
+    prism::ui::ConsoleKnob padDepth { proc.apvts, PID::padDepth, "Pad Depth", prism::ui::Palette::module (1) };
 
-    polar::Knob input { proc.apvts, PID::input, "Input", true }, tilt { proc.apvts, PID::tilt, "Tilt", true },
-                width { proc.apvts, PID::width, "Width" }, duck { proc.apvts, PID::duck, "Duck" },
-                gmix { proc.apvts, PID::gmix, "Mix" }, output { proc.apvts, PID::output, "Output", true };
+    using CK = prism::ui::ConsoleKnob;
+    CK input  { proc.apvts, PID::input,  "Input",  prism::ui::Palette::ink(), CK::Size::Small, true };
+    CK tilt   { proc.apvts, PID::tilt,   "Tilt",   prism::ui::Palette::ink(), CK::Size::Small, true };
+    CK width  { proc.apvts, PID::width,  "Width",  prism::ui::Palette::ink() };
+    CK duck   { proc.apvts, PID::duck,   "Duck",   prism::ui::Palette::ink() };
+    CK gmix   { proc.apvts, PID::gmix,   "Mix",    prism::ui::Palette::ink() };
+    CK output { proc.apvts, PID::output, "Output", prism::ui::Palette::ink(), CK::Size::Small, true };
     juce::ToggleButton sync { "Tempo sync" }, safety { "Safety limiter" };
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> syncAttach, safetyAttach, freezeAttach;
     prism::ui::FootSwitch freeze { prism::ui::Palette::ice() };
     prism::ui::Scope scope { proc };
 
     juce::Rectangle<int> deck, perform, master, outArea;
+    juce::Image chassis, deckFace;
     float anim = 0;
     float flashA = 0, flashB = 0;
 };

@@ -61,11 +61,8 @@ PrismEditor::PrismEditor (PrismProcessor& p) : AudioProcessorEditor (p), proc (p
     gestureLenAttach = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment> (proc.apvts, PID::gestureLen, gestureLen);
     addAndMakeVisible (gestureLen);
     addAndMakeVisible (padDepth);
-    useParamText (padDepth, proc.apvts, PID::padDepth, Palette::module (1));
 
-    const std::pair<polar::Knob*, juce::String> globals[] = { { &input, PID::input }, { &tilt, PID::tilt }, { &width, PID::width },
-                                                              { &duck, PID::duck }, { &gmix, PID::gmix }, { &output, PID::output } };
-    for (auto& [k, id] : globals) { addAndMakeVisible (k); useParamText (*k, proc.apvts, id, Palette::ink()); }
+    for (auto* k : { &input, &tilt, &width, &duck, &gmix, &output }) addAndMakeVisible (k);
 
     for (auto* t : { &sync, &safety }) { t->setColour (juce::ToggleButton::tickColourId, Palette::module (2)); addAndMakeVisible (t); }
     syncAttach = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (proc.apvts, PID::sync, sync);
@@ -166,19 +163,28 @@ void PrismEditor::resized()
 
 void PrismEditor::paint (juce::Graphics& g)
 {
-    g.fillAll (Palette::page());
+    g.fillAll (juce::Colour (0xff2a2b2f));
     const float s = (float) getWidth() / (float) kW;
     g.addTransform (juce::AffineTransform::scale (s));
 
-    // paper texture: faint dot grid
-    g.setColour (juce::Colour (0x0b000000));
-    for (int x = 12; x < kW; x += 24) for (int y = 12; y < kH; y += 24) g.fillEllipse ((float) x - 1, (float) y - 1, 2, 2);
+    // brushed-aluminium faceplate, generated once
+    if (! chassis.isValid()) chassis = prism::ui::mat::brushed (kW, kH, juce::Colour (0xffd9d9d6), 20251125u, 10.0f);
+    const auto face = juce::Rectangle<float> (0, 0, (float) kW, (float) kH);
+    g.setOpacity (1.0f); g.drawImageAt (chassis, 0, 0);
+    // broad specular sweep and vignette so the plate reads as a curved-light metal surface
+    g.setGradientFill (juce::ColourGradient (juce::Colours::white.withAlpha (0.28f), 0, 0, juce::Colours::white.withAlpha (0.0f), (float) kW * 0.55f, (float) kH * 0.7f, false));
+    g.fillRect (face);
+    g.setGradientFill (juce::ColourGradient (juce::Colours::black.withAlpha (0.0f), (float) kW * 0.5f, (float) kH * 0.45f, juce::Colours::black.withAlpha (0.16f), 0, (float) kH, true));
+    g.fillRect (face);
+    // chamfered edge around the whole box
+    prism::ui::mat::bevel (g, face.reduced (1), 10.0f, 5.0f, 1.0f);
+    g.setColour (juce::Colours::black.withAlpha (0.5f)); g.drawRoundedRectangle (face.reduced (0.5f), 10.0f, 1.0f);
+    for (auto pt : { juce::Point<float> (14, 14), juce::Point<float> ((float) kW - 14, 14), juce::Point<float> (14, (float) kH - 14), juce::Point<float> ((float) kW - 14, (float) kH - 14) })
+        prism::ui::mat::screw (g, pt, 7.0f, pt.x * 0.01f + pt.y * 0.02f);
 
     // wordmark
-    g.setColour (Palette::ink()); g.setFont (polar::uiFont (30.0f, true));
-    g.drawText ("PRISM", 180, 16, 200, 34, juce::Justification::centredLeft);
-    g.setColour (Palette::ink2()); g.setFont (polar::uiFont (11.0f, true));
-    g.drawText (juce::String::fromUTF8 ("FOUR-COLOUR EFFECT ENGINE  \xc2\xb7  POLAR AUDIO"), 182, 48, 320, 16, juce::Justification::centredLeft);
+    prism::ui::mat::engraved (g, "PRISM", { 180, 16, 200, 34 }, polar::uiFont (30.0f, true), Palette::ink(), juce::Justification::centredLeft);
+    prism::ui::mat::engraved (g, juce::String::fromUTF8 ("FOUR-COLOUR EFFECT ENGINE  \xc2\xb7  POLAR AUDIO"), { 182, 48, 320, 16 }, polar::uiFont (11.0f, true), Palette::ink2(), juce::Justification::centredLeft);
     g.setColour (Palette::ink3()); g.setFont (polar::uiFont (10.0f, true));
     g.drawText ("A", setA.getRight() + 2, 28, 10, 28, juce::Justification::centredLeft);
     g.drawText ("B", setB.getX() - 12, 28, 10, 28, juce::Justification::centredRight);
@@ -215,17 +221,27 @@ void PrismEditor::paint (juce::Graphics& g)
     g.drawText ("OUT", kW - 26, cardArea (3).getY() + 64, 24, 16, juce::Justification::centred);
 
     // performance deck
-    juce::Path dp; dp.addRoundedRectangle (deck.toFloat(), 22.0f);
-    juce::DropShadow (juce::Colours::black.withAlpha (0.08f), 22, { 0, 8 }).drawForPath (g, dp);
-    g.setColour (Palette::body()); g.fillPath (dp);
-    g.setColour (Palette::line()); g.strokePath (dp, juce::PathStrokeType (1.0f));
-    g.setColour (Palette::ink3()); g.setFont (polar::uiFont (10.5f, true));
-    g.drawText (juce::String::fromUTF8 ("PERFORM  \xc2\xb7  XY PAD + GESTURE"), perform.getX(), deck.getY() + 12, 300, 16, juce::Justification::centredLeft);
-    g.drawText ("MASTER", master.getX(), deck.getY() + 12, 200, 16, juce::Justification::centredLeft);
-    g.drawText ("OUTPUT", outArea.getX(), deck.getY() + 12, 200, 16, juce::Justification::centredLeft);
+    juce::Path dp; dp.addRoundedRectangle (deck.toFloat(), 16.0f);
+    juce::DropShadow (juce::Colours::black.withAlpha (0.28f), 4, { 0, 2 }).drawForPath (g, dp);
+    juce::DropShadow (juce::Colours::black.withAlpha (0.18f), 26, { 6, 14 }).drawForPath (g, dp);
+    if (! deckFace.isValid()) deckFace = prism::ui::mat::grain (deck.getWidth(), deck.getHeight(), juce::Colour (0xfff6f5f2), 777u, 9.0f);
+    {
+        juce::Graphics::ScopedSaveState ss (g);
+        g.reduceClipRegion (dp);
+        g.setOpacity (1.0f); g.drawImageAt (deckFace, deck.getX(), deck.getY());
+    }
+    prism::ui::mat::bevel (g, deck.toFloat(), 16.0f, 2.0f);
+    for (auto pt : { juce::Point<float> ((float) deck.getX() + 16, (float) deck.getY() + 16), juce::Point<float> ((float) deck.getRight() - 16, (float) deck.getY() + 16),
+                     juce::Point<float> ((float) deck.getX() + 16, (float) deck.getBottom() - 16), juce::Point<float> ((float) deck.getRight() - 16, (float) deck.getBottom() - 16) })
+        prism::ui::mat::screw (g, pt, 5.5f, pt.x * 0.05f);
+    const auto lf = polar::uiFont (10.5f, true);
+    prism::ui::mat::engraved (g, juce::String::fromUTF8 ("PERFORM  \xc2\xb7  XY PAD + GESTURE"), juce::Rectangle<int> (perform.getX() + 14, deck.getY() + 12, 300, 16).toFloat(), lf, Palette::ink2(), juce::Justification::centredLeft);
+    prism::ui::mat::engraved (g, "MASTER", juce::Rectangle<int> (master.getX(), deck.getY() + 12, 200, 16).toFloat(), lf, Palette::ink2(), juce::Justification::centredLeft);
+    prism::ui::mat::engraved (g, "OUTPUT", juce::Rectangle<int> (outArea.getX(), deck.getY() + 12, 200, 16).toFloat(), lf, Palette::ink2(), juce::Justification::centredLeft);
     for (int x : { perform.getRight() + 10, outArea.getX() - 10 })
     {
-        g.setColour (Palette::line()); g.drawVerticalLine (x, (float) deck.getY() + 18, (float) deck.getBottom() - 18);
+        g.setColour (juce::Colours::black.withAlpha (0.18f)); g.drawVerticalLine (x, (float) deck.getY() + 18, (float) deck.getBottom() - 18);
+        g.setColour (juce::Colours::white.withAlpha (0.9f)); g.drawVerticalLine (x + 1, (float) deck.getY() + 18, (float) deck.getBottom() - 18);
     }
     // chain readout + gesture status
     auto order = shownOrder;
@@ -253,5 +269,11 @@ void PrismEditor::timerCallback()
     const auto st = proc.gestureState();
     recButton.setToggleState (st == PrismProcessor::GestureState::Armed || st == PrismProcessor::GestureState::Recording, juce::dontSendNotification);
     playButton.setToggleState (st == PrismProcessor::GestureState::Playing, juce::dontSendNotification);
-    repaint();   // arrows, flashes and gesture bar live in the editor's own paint
+    // only the animated bits of the editor's own paint: flow arrows, scene flashes, gesture status
+    const float sc = (float) getWidth() / (float) kW;
+    auto dirty = [&] (juce::Rectangle<int> r) { repaint (r.toFloat().transformedBy (juce::AffineTransform::scale (sc)).getSmallestIntegerContainer().expanded (2)); };
+    for (int pos = 0; pos < 3; ++pos) dirty ({ cardArea (pos).getRight(), cardArea (pos).getY() + 60, 40, 24 });
+    dirty (setA.getBounds().expanded (8).withBottom (setA.getBottom() + 14));
+    dirty (setB.getBounds().expanded (8).withBottom (setB.getBottom() + 14));
+    dirty ({ recButton.getX(), pad.getBottom() - 26, 170, 28 });
 }

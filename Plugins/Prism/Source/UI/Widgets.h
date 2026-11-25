@@ -1,6 +1,7 @@
 #pragma once
 #include "../PluginProcessor.h"
 #include "PrismLook.h"
+#include "ConsoleKnob.h"
 
 namespace prism::ui
 {
@@ -43,31 +44,40 @@ public:
     {
         auto b = getLocalBounds().toFloat();
         const bool on = getToggleState();
-        // LED
-        auto led = juce::Rectangle<float> (b.getCentreX() - 5, b.getY() + 2, 10, 10);
-        if (on)
-        {
-            g.setGradientFill (juce::ColourGradient (ledColour.withAlpha (0.45f), led.getCentreX(), led.getCentreY(), ledColour.withAlpha (0.0f), led.getCentreX() + 14, led.getCentreY(), true));
-            g.fillEllipse (led.expanded (12));
-        }
-        g.setColour (on ? ledColour : Palette::line().darker (0.1f)); g.fillEllipse (led);
-        g.setColour (juce::Colours::white.withAlpha (on ? 0.7f : 0.4f)); g.fillEllipse (led.reduced (3).translated (-1, -1));
-        // switch
+        mat::led (g, { b.getCentreX(), b.getY() + 7 }, 4.5f, ledColour, on);
         const float r = juce::jmin (b.getWidth(), b.getHeight() - 18) * 0.5f - 2;
-        auto c = juce::Point<float> (b.getCentreX(), b.getBottom() - r - 2);
-        juce::Path outer; outer.addEllipse (c.x - r, c.y - r, r * 2, r * 2);
-        juce::DropShadow (juce::Colours::black.withAlpha (down ? 0.12f : 0.24f), down ? 4 : 9, { 0, down ? 1 : 4 }).drawForPath (g, outer);
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xfffdfdfd), c.x, c.y - r, juce::Colour (0xffc9c7c2), c.x, c.y + r, false));
-        g.fillPath (outer);
-        const float ir = r * 0.72f;
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xffd8d6d1), c.x, c.y - ir, juce::Colour (0xfff9f9f8), c.x, c.y + ir, false));
-        g.fillEllipse (c.x - ir, c.y - ir, ir * 2, ir * 2);
-        g.setColour (juce::Colour (over ? 0x30000000 : 0x18000000)); g.drawEllipse (c.x - ir, c.y - ir, ir * 2, ir * 2, 1.0f);
-        if (caption.isNotEmpty())
+        const auto c = juce::Point<float> (b.getCentreX(), b.getBottom() - r - 2);
+        // hex nut on the panel
+        juce::Path hex;
+        for (int i = 0; i < 6; ++i)
         {
-            g.setColour (Palette::ink2()); g.setFont (polar::uiFont (9.5f, true));
-            g.drawText (caption, juce::Rectangle<float> (c.x - ir, c.y - 6, ir * 2, 12), juce::Justification::centred);
+            const float a = juce::MathConstants<float>::twoPi * (float) i / 6.0f + 0.52f;
+            const juce::Point<float> p (c.x + std::cos (a) * r, c.y + std::sin (a) * r);
+            i == 0 ? hex.startNewSubPath (p) : hex.lineTo (p);
         }
+        hex.closeSubPath();
+        juce::DropShadow (juce::Colours::black.withAlpha (0.35f), 7, { 2, 4 }).drawForPath (g, hex);
+        g.setGradientFill (juce::ColourGradient (juce::Colour (0xfff5f5f3), c.x - r, c.y - r, juce::Colour (0xff7d7e80), c.x + r, c.y + r, false));
+        g.fillPath (hex);
+        g.setColour (juce::Colours::white.withAlpha (0.5f)); g.strokePath (hex, juce::PathStrokeType (1.0f));
+        // chrome plunger: travels down a hair when pressed
+        const float pr = r * 0.66f, dy = down ? 1.5f : 0.0f;
+        juce::Path plunger; plunger.addEllipse (c.x - pr, c.y - pr + dy, pr * 2, pr * 2);
+        juce::DropShadow (juce::Colours::black.withAlpha (down ? 0.25f : 0.45f), down ? 3 : 6, { 1, down ? 1 : 3 }).drawForPath (g, plunger);
+        g.setGradientFill (juce::ColourGradient (juce::Colour (0xff6b6c6f), c.x, c.y - pr + dy, juce::Colour (0xfff7f7f7), c.x, c.y + pr + dy, false));
+        g.fillPath (plunger);
+        const float tr = pr * 0.78f;
+        juce::ColourGradient chrome (juce::Colours::white, c.x - tr * 0.4f, c.y - tr * 0.6f + dy, juce::Colour (0xff8f9093), c.x + tr, c.y + tr + dy, true);
+        chrome.addColour (0.55, juce::Colour (0xffd3d4d6));
+        g.setGradientFill (chrome); g.fillEllipse (c.x - tr, c.y - tr + dy, tr * 2, tr * 2);
+        for (float rr = tr * 0.2f; rr < tr; rr += 2.2f)
+        {
+            g.setColour (juce::Colours::black.withAlpha (0.04f)); g.drawEllipse (c.x - rr, c.y - rr + dy, rr * 2, rr * 2, 0.7f);
+        }
+        g.setColour (juce::Colours::white.withAlpha (over ? 0.95f : 0.8f));
+        g.fillEllipse (c.x - tr * 0.55f, c.y - tr * 0.75f + dy, tr * 0.7f, tr * 0.35f);
+        if (caption.isNotEmpty())
+            mat::engraved (g, caption, { c.x - r * 1.6f, b.getY() + 13, r * 3.2f, 12 }, polar::uiFont (9.5f, true), Palette::ink2());
     }
 };
 
@@ -92,10 +102,9 @@ public:
     {
         auto b = getLocalBounds().toFloat();
         const auto accent = Palette::module (m);
-        g.setColour (accent.withAlpha (0.07f)); g.fillRoundedRectangle (b, 12.0f);
-        g.setColour (accent.withAlpha (0.18f)); g.drawRoundedRectangle (b.reduced (0.5f), 12.0f, 1.0f);
-        // dotted grid
-        g.setColour (accent.withAlpha (0.12f));
+        mat::glassBackground (g, b, 10.0f, accent);
+        // dotted graticule
+        g.setColour (accent.withAlpha (0.16f));
         for (float x = b.getX() + 12; x < b.getRight() - 6; x += 12)
             for (float y = b.getY() + 12; y < b.getBottom() - 6; y += 12) g.fillEllipse (x - 0.8f, y - 0.8f, 1.6f, 1.6f);
 
@@ -115,8 +124,9 @@ public:
             default: drawAir (g, area, type, amt, tw, accent.withMultipliedAlpha (alpha)); break;
         }
         g.restoreState();
-        g.setColour (Palette::ink().withAlpha (0.55f * alpha + 0.2f)); g.setFont (polar::uiFont (10.5f, true));
+        g.setColour (accent.brighter (0.6f).withAlpha (0.55f * alpha + 0.3f)); g.setFont (polar::uiFont (10.5f, true));
         g.drawText (readout (type, amt, tw), b.reduced (10, 6).toNearestInt(), juce::Justification::topRight);
+        mat::glassOverlay (g, b, 10.0f);
     }
 
 private:
@@ -358,15 +368,14 @@ public:
 
     ModuleCard (PrismProcessor& p, int moduleIndex)
         : proc (p), m (moduleIndex), accent (Palette::module (moduleIndex)), screen (p, moduleIndex),
-          amount (p.apvts, PID::m (moduleIndex, PID::amount), "Amount"),
-          tweak (p.apvts, PID::m (moduleIndex, PID::tweak), "Tweak"),
-          tone (p.apvts, PID::m (moduleIndex, PID::tone), "Tone"),
-          mix (p.apvts, PID::m (moduleIndex, PID::mix), "Mix"),
+          amount (p.apvts, PID::m (moduleIndex, PID::amount), "Amount", Palette::module (moduleIndex), ConsoleKnob::Size::Large),
+          tweak (p.apvts, PID::m (moduleIndex, PID::tweak), "Tweak", Palette::module (moduleIndex)),
+          tone (p.apvts, PID::m (moduleIndex, PID::tone), "Tone", Palette::module (moduleIndex)),
+          mix (p.apvts, PID::m (moduleIndex, PID::mix), "Mix", Palette::module (moduleIndex)),
           foot (Palette::module (moduleIndex))
     {
         addAndMakeVisible (screen);
-        for (auto* k : { &amount, &tweak, &tone, &mix }) { addAndMakeVisible (k); useParamText (*k, p.apvts, k == &amount ? PID::m (m, PID::amount) : k == &tweak ? PID::m (m, PID::tweak) : k == &tone ? PID::m (m, PID::tone) : PID::m (m, PID::mix), accent); }
-        amount.slider.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 72, 18);
+        for (auto* k : { &amount, &tweak, &tone, &mix }) addAndMakeVisible (k);
         auto* typeParam = dynamic_cast<juce::AudioParameterChoice*> (p.apvts.getParameter (PID::m (m, PID::type)));
         for (int i = 0; i < 6; ++i)
         {
@@ -406,27 +415,39 @@ public:
 
     void paint (juce::Graphics& g) override
     {
-        auto b = getLocalBounds().toFloat().reduced (2);
-        juce::Path body; body.addRoundedRectangle (b, 20.0f);
-        juce::DropShadow (juce::Colours::black.withAlpha (0.09f), 22, { 0, 8 }).drawForPath (g, body);
-        g.setColour (Palette::body()); g.fillPath (body);
-        g.setColour (Palette::line()); g.strokePath (body, juce::PathStrokeType (1.0f));
-        // colour band
-        auto band = b.removeFromTop (46);
-        juce::Path bp; bp.addRoundedRectangle (band.getX(), band.getY(), band.getWidth(), band.getHeight(), 20.0f, 20.0f, true, true, false, false);
-        g.setGradientFill (juce::ColourGradient (accent.brighter (0.12f), band.getX(), band.getY(), accent.darker (0.05f), band.getRight(), band.getBottom(), false));
-        g.fillPath (bp);
-        g.setColour (juce::Colours::white.withAlpha (0.85f)); g.setFont (polar::uiFont (11.0f, true));
-        g.drawText ("0" + juce::String (chainPos + 1), band.withTrimmedLeft (16).toNearestInt(), juce::Justification::centredLeft);
-        g.setColour (juce::Colours::white); g.setFont (polar::uiFont (17.0f, true));
-        static const char* names[4] = { "COLOR", "MOTION", "SPACE", "AIR" };
-        g.drawText (names[m], band.withTrimmedLeft (40).toNearestInt(), juce::Justification::centredLeft);
-        // screws
-        for (auto pt : { juce::Point<float> (b.getX() + 14, b.getBottom() - 14), juce::Point<float> (b.getRight() - 14, b.getBottom() - 14) })
+        auto b = getLocalBounds().toFloat().reduced (3);
+        const float rad = 14.0f;
+        juce::Path body; body.addRoundedRectangle (b, rad);
+        // the plate sits slightly proud of the chassis: contact shadow + long soft shadow
+        juce::DropShadow (juce::Colours::black.withAlpha (0.28f), 4, { 0, 2 }).drawForPath (g, body);
+        juce::DropShadow (juce::Colours::black.withAlpha (0.18f), 26, { 6, 14 }).drawForPath (g, body);
+        if (! face.isValid() || face.getWidth() != (int) b.getWidth())
+            face = mat::grain ((int) b.getWidth(), (int) b.getHeight(), juce::Colour (0xfff6f5f2), (juce::uint32) (1234 + m * 77), 9.0f);
         {
-            g.setColour (Palette::line()); g.fillEllipse (pt.x - 5, pt.y - 5, 10, 10);
-            g.setColour (Palette::ink3()); g.drawLine (pt.x - 3, pt.y - 1.5f, pt.x + 3, pt.y + 1.5f, 1.2f);
+            juce::Graphics::ScopedSaveState ss (g);
+            g.reduceClipRegion (body);
+            g.setOpacity (1.0f); g.drawImageAt (face, (int) b.getX(), (int) b.getY());
+            // anodised colour plate with brushed grain
+            auto band = b.withHeight (50.0f);
+            if (! plate.isValid() || plate.getWidth() != (int) band.getWidth())
+            {
+                plate = mat::brushed ((int) band.getWidth(), (int) band.getHeight(), accent.darker (0.08f), (juce::uint32) (99 + m), 7.0f);
+            }
+            g.setOpacity (1.0f); g.drawImageAt (plate, (int) band.getX(), (int) band.getY());
+            g.setGradientFill (juce::ColourGradient (juce::Colours::white.withAlpha (0.28f), band.getX(), band.getY(), juce::Colours::black.withAlpha (0.12f), band.getX(), band.getBottom(), false));
+            g.fillRect (band);
+            g.setColour (juce::Colours::black.withAlpha (0.35f)); g.drawHorizontalLine ((int) band.getBottom(), band.getX(), band.getRight());
+            g.setColour (juce::Colours::white.withAlpha (0.8f)); g.drawHorizontalLine ((int) band.getBottom() + 1, band.getX(), band.getRight());
+            mat::engraved (g, "0" + juce::String (chainPos + 1), band.withTrimmedLeft (34), polar::uiFont (11.0f, true), juce::Colours::white.withAlpha (0.8f), juce::Justification::centredLeft, true);
+            static const char* names[4] = { "COLOR", "MOTION", "SPACE", "AIR" };
+            mat::engraved (g, names[m], band.withTrimmedLeft (56), polar::uiFont (17.0f, true), juce::Colours::white, juce::Justification::centredLeft, true);
+            mat::screw (g, { band.getX() + 16, band.getCentreY() }, 5.5f, 0.3f + (float) m);
+            // recessed groove framing the controls
+            mat::innerShadow (g, juce::Rectangle<float> (b.getX() + 8, band.getBottom() + 8, b.getWidth() - 16, b.getHeight() - 66), 10.0f, 6.0f, 0.12f);
         }
+        mat::bevel (g, b, rad, 2.0f);
+        for (auto pt : { juce::Point<float> (b.getX() + 16, b.getBottom() - 16), juce::Point<float> (b.getRight() - 16, b.getBottom() - 16) })
+            mat::screw (g, pt, 6.0f, pt.x * 0.13f);
     }
 
     void resized() override
@@ -473,15 +494,16 @@ private:
                 { { "Depth", "Rate", "Tone" }, { "Depth", "Rate", "Warble" }, { "Depth", "Rate", "Feedback" }, { "Depth", "Rate", "Shape" }, { "Depth", "Rate", "Feedback" }, { "Detune", "Drift", "Tone" } },
                 { { "Feedback", "Time", "Tone" }, { "Feedback", "Time", "Tone" }, { "Feedback", "Length", "Tone" }, { "Feedback", "Time", "Tone" }, { "Feedback", "Time", "Tone" }, { "Density", "Size", "Pitch" } },
                 { { "Decay", "Size", "Tone" }, { "Decay", "Size", "Tone" }, { "Decay", "Pre-delay", "Shimmer" }, { "Decay", "Tension", "Tone" }, { "Wobble", "Age", "Tone" }, { "Chance", "Slice", "Pitch" } } };
-            amount.label.setText (labels[m][type][0], juce::dontSendNotification);
-            tweak.label.setText (labels[m][type][1], juce::dontSendNotification);
-            tone.label.setText (labels[m][type][2], juce::dontSendNotification);
+            amount.setTitle (labels[m][type][0]);
+            tweak.setTitle (labels[m][type][1]);
+            tone.setTitle (labels[m][type][2]);
         }
     }
 
     PrismProcessor& proc; int m; juce::Colour accent;
     ModuleScreen screen;
-    polar::Knob amount, tweak, tone, mix;
+    ConsoleKnob amount, tweak, tone, mix;
+    juce::Image face, plate;
     juce::OwnedArray<juce::TextButton> types;
     FootSwitch foot; std::unique_ptr<APVTS::ButtonAttachment> footAttach;
     juce::TextButton left, right, lock;
@@ -499,20 +521,25 @@ public:
     void paint (juce::Graphics& g) override
     {
         auto b = getLocalBounds().toFloat().reduced (1);
-        // 4-corner colour field
-        juce::ColourGradient top (Palette::module (0).withAlpha (0.18f), b.getX(), b.getY(), Palette::module (1).withAlpha (0.18f), b.getRight(), b.getY(), false);
-        g.setColour (Palette::well()); g.fillRoundedRectangle (b, 16);
-        g.setGradientFill (top); g.fillRoundedRectangle (b, 16);
-        juce::ColourGradient bot (Palette::module (3).withAlpha (0.0f), b.getX(), b.getY(), Palette::module (2).withAlpha (0.22f), b.getRight(), b.getBottom(), false);
-        g.setGradientFill (bot); g.fillRoundedRectangle (b, 16);
-        g.setColour (Palette::line()); g.drawRoundedRectangle (b, 16, 1.0f);
-        g.setColour (juce::Colour (0x10000000));
+        // dark glass with a glow from each module colour in its corner
+        mat::glassBackground (g, b, 14.0f, Palette::module (1));
+        {
+            juce::Graphics::ScopedSaveState ss (g);
+            juce::Path clip; clip.addRoundedRectangle (b, 14.0f); g.reduceClipRegion (clip);
+            const juce::Point<float> corners[4] = { b.getTopLeft(), b.getTopRight(), b.getBottomRight(), b.getBottomLeft() };
+            for (int k = 0; k < 4; ++k)
+            {
+                g.setGradientFill (juce::ColourGradient (Palette::module (k).withAlpha (0.35f), corners[k].x, corners[k].y, Palette::module (k).withAlpha (0.0f), corners[k].x + b.getWidth() * 0.7f, corners[k].y, true));
+                g.fillRect (b);
+            }
+        }
+        g.setColour (juce::Colours::white.withAlpha (0.07f));
         for (int i = 1; i < 6; ++i)
         {
             g.drawLine (b.getX() + b.getWidth() * i / 6.0f, b.getY() + 6, b.getX() + b.getWidth() * i / 6.0f, b.getBottom() - 6);
             g.drawLine (b.getX() + 6, b.getY() + b.getHeight() * i / 6.0f, b.getRight() - 6, b.getY() + b.getHeight() * i / 6.0f);
         }
-        g.setColour (Palette::ink3()); g.setFont (polar::uiFont (10.0f, true));
+        g.setColour (juce::Colours::white.withAlpha (0.45f)); g.setFont (polar::uiFont (10.0f, true));
         g.drawText (juce::String::fromUTF8 ("TWEAK \xe2\x86\x92"), b.reduced (10, 6).toNearestInt(), juce::Justification::bottomRight);
         g.drawText (juce::String::fromUTF8 ("\xe2\x86\x91 AMOUNT"), b.reduced (10, 6).toNearestInt(), juce::Justification::topLeft);
 
@@ -526,7 +553,7 @@ public:
                 const juce::Point<float> pt (b.getX() + proc.gestX[(size_t) i] * b.getWidth(), b.getBottom() - proc.gestY[(size_t) i] * b.getHeight());
                 i == 0 ? path.startNewSubPath (pt) : path.lineTo (pt);
             }
-            g.setColour (Palette::ink().withAlpha (0.18f)); g.strokePath (path, juce::PathStrokeType (2.0f));
+            g.setColour (juce::Colours::white.withAlpha (0.25f)); g.strokePath (path, juce::PathStrokeType (2.0f));
         }
         // trail
         for (int i = 0; i < (int) trail.size(); ++i)
@@ -550,6 +577,7 @@ public:
             g.setColour (juce::Colour (0xffff3b30).withAlpha (0.5f + 0.5f * std::sin (anim * 8.0f)));
             g.drawEllipse (c.x - 17, c.y - 17, 34, 34, 2.0f);
         }
+        mat::glassOverlay (g, b, 14.0f);
     }
 
     void tick (float dt)
@@ -604,11 +632,13 @@ public:
     void paint (juce::Graphics& g) override
     {
         auto b = getLocalBounds().toFloat();
-        g.setColour (Palette::well()); g.fillRoundedRectangle (b, 14);
-        g.setColour (Palette::line()); g.drawRoundedRectangle (b.reduced (0.5f), 14, 1.0f);
+        const auto full = b;
+        mat::glassBackground (g, b, 12.0f, Palette::module (2));
         auto meters = b.removeFromRight (34).reduced (8, 12);
         auto area = b.reduced (12, 10);
-        g.setColour (Palette::line()); g.drawHorizontalLine ((int) area.getCentreY(), area.getX(), area.getRight());
+        g.setColour (juce::Colours::white.withAlpha (0.06f));
+        for (int i = 1; i < 8; ++i) g.drawVerticalLine ((int) (area.getX() + area.getWidth() * i / 8.0f), area.getY(), area.getBottom());
+        for (int i = 1; i < 4; ++i) g.drawHorizontalLine ((int) (area.getY() + area.getHeight() * i / 4.0f), area.getX(), area.getRight());
         juce::Path p;
         const int w = PrismProcessor::kScope, start = proc.scopeWrite.load();
         const int shown = 512;
@@ -620,15 +650,21 @@ public:
         }
         juce::ColourGradient grad (Palette::module (0), area.getX(), 0, Palette::module (3), area.getRight(), 0, false);
         grad.addColour (0.33, Palette::module (1)); grad.addColour (0.66, Palette::module (2));
+        auto glow = grad; glow.multiplyOpacity (0.25f);
+        g.setGradientFill (glow); g.strokePath (p, juce::PathStrokeType (6.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
         g.setGradientFill (grad); g.strokePath (p, juce::PathStrokeType (1.8f));
         auto bar = [&] (juce::Rectangle<float> r, float v)
         {
-            g.setColour (Palette::line()); g.fillRoundedRectangle (r, 3);
+            g.setColour (juce::Colours::white.withAlpha (0.08f)); g.fillRoundedRectangle (r, 3);
             const float db = juce::Decibels::gainToDecibels (v, -60.0f);
             const float f = juce::jlimit (0.0f, 1.0f, (db + 60.0f) / 63.0f);
             g.setColour (db > -1.0f ? juce::Colour (0xffff3b30) : Palette::module (2)); g.fillRoundedRectangle (r.withTop (r.getBottom() - r.getHeight() * f), 3);
         };
         bar (meters.removeFromLeft (7), mL); meters.removeFromLeft (4); bar (meters.removeFromLeft (7), mR);
+        // CRT scanlines + glass
+        g.setColour (juce::Colours::black.withAlpha (0.18f));
+        for (float y = full.getY() + 2; y < full.getBottom(); y += 3) g.drawHorizontalLine ((int) y, full.getX() + 4, full.getRight() - 4);
+        mat::glassOverlay (g, full, 12.0f);
     }
 private:
     PrismProcessor& proc; float mL = 0, mR = 0;
