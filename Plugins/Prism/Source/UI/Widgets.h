@@ -22,7 +22,7 @@ inline void useParamText (polar::Knob& k, APVTS& s, const juce::String& id, juce
     k.slider.setColour (juce::Slider::textBoxBackgroundColourId, juce::Colours::transparentBlack);
     k.slider.setColour (juce::Slider::textBoxHighlightColourId, accent.withAlpha (0.25f));
     k.label.setColour (juce::Label::textColourId, Palette::ink());
-    k.label.setFont (polar::uiFont (11.5f, true));
+    k.label.setFont (fonts::label (13.8f));
 }
 
 inline void setParam (APVTS& s, const juce::String& id, float v)
@@ -47,37 +47,14 @@ public:
         mat::led (g, { b.getCentreX(), b.getY() + 7 }, 4.5f, ledColour, on);
         const float r = juce::jmin (b.getWidth(), b.getHeight() - 18) * 0.5f - 2;
         const auto c = juce::Point<float> (b.getCentreX(), b.getBottom() - r - 2);
-        // hex nut on the panel
-        juce::Path hex;
-        for (int i = 0; i < 6; ++i)
-        {
-            const float a = juce::MathConstants<float>::twoPi * (float) i / 6.0f + 0.52f;
-            const juce::Point<float> p (c.x + std::cos (a) * r, c.y + std::sin (a) * r);
-            i == 0 ? hex.startNewSubPath (p) : hex.lineTo (p);
-        }
-        hex.closeSubPath();
-        juce::DropShadow (juce::Colours::black.withAlpha (0.35f), 7, { 2, 4 }).drawForPath (g, hex);
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xfff5f5f3), c.x - r, c.y - r, juce::Colour (0xff7d7e80), c.x + r, c.y + r, false));
-        g.fillPath (hex);
-        g.setColour (juce::Colours::white.withAlpha (0.5f)); g.strokePath (hex, juce::PathStrokeType (1.0f));
-        // chrome plunger: travels down a hair when pressed
-        const float pr = r * 0.66f, dy = down ? 1.5f : 0.0f;
-        juce::Path plunger; plunger.addEllipse (c.x - pr, c.y - pr + dy, pr * 2, pr * 2);
-        juce::DropShadow (juce::Colours::black.withAlpha (down ? 0.25f : 0.45f), down ? 3 : 6, { 1, down ? 1 : 3 }).drawForPath (g, plunger);
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xff6b6c6f), c.x, c.y - pr + dy, juce::Colour (0xfff7f7f7), c.x, c.y + pr + dy, false));
-        g.fillPath (plunger);
-        const float tr = pr * 0.78f;
-        juce::ColourGradient chrome (juce::Colours::white, c.x - tr * 0.4f, c.y - tr * 0.6f + dy, juce::Colour (0xff8f9093), c.x + tr, c.y + tr + dy, true);
-        chrome.addColour (0.55, juce::Colour (0xffd3d4d6));
-        g.setGradientFill (chrome); g.fillEllipse (c.x - tr, c.y - tr + dy, tr * 2, tr * 2);
-        for (float rr = tr * 0.2f; rr < tr; rr += 2.2f)
-        {
-            g.setColour (juce::Colours::black.withAlpha (0.04f)); g.drawEllipse (c.x - rr, c.y - rr + dy, rr * 2, rr * 2, 0.7f);
-        }
-        g.setColour (juce::Colours::white.withAlpha (over ? 0.95f : 0.8f));
-        g.fillEllipse (c.x - tr * 0.55f, c.y - tr * 0.75f + dy, tr * 0.7f, tr * 0.35f);
+        // physically rendered chrome stomp on a hex nut (pressed variant sits lower)
+        const int sz = juce::roundToInt (r * 2.0f);
+        const float W = (float) sz * 1.4f;
+        g.setOpacity (1.0f);
+        g.drawImage (pbr::cachedStomp (sz, down, 2.0f), juce::Rectangle<float> (W, W).withCentre (c), juce::RectanglePlacement::stretchToFit);
+        if (over) { g.setColour (juce::Colours::white.withAlpha (0.10f)); g.fillEllipse (c.x - r * 0.68f, c.y - r * 0.68f, r * 1.36f, r * 1.36f); }
         if (caption.isNotEmpty())
-            mat::engraved (g, caption, { c.x - r * 1.6f, b.getY() + 13, r * 3.2f, 12 }, polar::uiFont (9.5f, true), Palette::ink2());
+            mat::engraved (g, caption, { c.x - r * 1.6f, b.getY() + 13, r * 3.2f, 12 }, fonts::label (11.4f), Palette::ink2());
     }
 };
 
@@ -124,7 +101,7 @@ public:
             default: drawAir (g, area, type, amt, tw, accent.withMultipliedAlpha (alpha)); break;
         }
         g.restoreState();
-        g.setColour (accent.brighter (0.6f).withAlpha (0.55f * alpha + 0.3f)); g.setFont (polar::uiFont (10.5f, true));
+        g.setColour (accent.brighter (0.6f).withAlpha (0.55f * alpha + 0.3f)); g.setFont (fonts::mono (10.5f));
         g.drawText (readout (type, amt, tw), b.reduced (10, 6).toNearestInt(), juce::Justification::topRight);
         mat::glassOverlay (g, b, 10.0f);
     }
@@ -418,40 +395,42 @@ public:
         auto b = getLocalBounds().toFloat().reduced (3);
         const float rad = 14.0f;
         juce::Path body; body.addRoundedRectangle (b, rad);
-        // the plate sits slightly proud of the chassis: contact shadow + long soft shadow
-        juce::DropShadow (juce::Colours::black.withAlpha (0.28f), 4, { 0, 2 }).drawForPath (g, body);
-        juce::DropShadow (juce::Colours::black.withAlpha (0.18f), 26, { 6, 14 }).drawForPath (g, body);
-        if (! face.isValid() || face.getWidth() != (int) b.getWidth())
-            face = mat::grain ((int) b.getWidth(), (int) b.getHeight(), juce::Colour (0xfff6f5f2), (juce::uint32) (1234 + m * 77), 9.0f);
+        juce::ignoreUnused (body);   // shadows are cast onto the chassis by the editor
+        if (! face.isValid())
         {
-            juce::Graphics::ScopedSaveState ss (g);
-            g.reduceClipRegion (body);
-            g.setOpacity (1.0f); g.drawImageAt (face, (int) b.getX(), (int) b.getY());
-            // anodised colour plate with brushed grain
-            auto band = b.withHeight (50.0f);
-            if (! plate.isValid() || plate.getWidth() != (int) band.getWidth())
-            {
-                plate = mat::brushed ((int) band.getWidth(), (int) band.getHeight(), accent.darker (0.08f), (juce::uint32) (99 + m), 7.0f);
-            }
-            g.setOpacity (1.0f); g.drawImageAt (plate, (int) band.getX(), (int) band.getY());
-            g.setGradientFill (juce::ColourGradient (juce::Colours::white.withAlpha (0.28f), band.getX(), band.getY(), juce::Colours::black.withAlpha (0.12f), band.getX(), band.getBottom(), false));
-            g.fillRect (band);
-            g.setColour (juce::Colours::black.withAlpha (0.35f)); g.drawHorizontalLine ((int) band.getBottom(), band.getX(), band.getRight());
-            g.setColour (juce::Colours::white.withAlpha (0.8f)); g.drawHorizontalLine ((int) band.getBottom() + 1, band.getX(), band.getRight());
-            mat::engraved (g, "0" + juce::String (chainPos + 1), band.withTrimmedLeft (34), polar::uiFont (11.0f, true), juce::Colours::white.withAlpha (0.8f), juce::Justification::centredLeft, true);
-            static const char* names[4] = { "COLOR", "MOTION", "SPACE", "AIR" };
-            mat::engraved (g, names[m], band.withTrimmedLeft (56), polar::uiFont (17.0f, true), juce::Colours::white, juce::Justification::centredLeft, true);
-            mat::screw (g, { band.getX() + 16, band.getCentreY() }, 5.5f, 0.3f + (float) m);
-            // recessed groove framing the controls
-            mat::innerShadow (g, juce::Rectangle<float> (b.getX() + 8, band.getBottom() + 8, b.getWidth() - 16, b.getHeight() - 66), 10.0f, 6.0f, 0.12f);
+            // wells for the screen and the effect keys, so the hardware is genuinely cut into the plate
+            std::vector<pbr::Recess> wells;
+            wells.push_back ({ screen.getBounds().toFloat().expanded (4.0f).translated (-b.getX(), -b.getY()), 12.0f, 4.0f, 2.0f });
+            for (auto* t : types) wells.push_back ({ t->getBounds().toFloat().reduced (1.5f).translated (-b.getX(), -b.getY()), 6.5f, 1.6f, 1.2f });
+            const auto origin = getPosition().toFloat() + b.getTopLeft();
+            face = pbr::renderPlate (origin.x, origin.y, b.getWidth(), b.getHeight(), 2.0f, 50.0f, accent, wells, rad, (juce::uint32) (11 + m * 7));
         }
-        mat::bevel (g, b, rad, 2.0f);
+        g.setOpacity (1.0f);
+        g.drawImage (face, b, juce::RectanglePlacement::stretchToFit);
+        {
+            auto band = b.withHeight (50.0f);
+            mat::engraved (g, "0" + juce::String (chainPos + 1), band.withTrimmedLeft (34), fonts::mono (10.5f), juce::Colours::white.withAlpha (0.85f), juce::Justification::centredLeft, true);
+            static const char* names[4] = { "COLOR", "MOTION", "SPACE", "AIR" };
+            {
+                // screen-printed module name: soft drop on the paint, then a double-struck white fill for weight
+                const auto nr = band.withTrimmedLeft (56);
+                g.setFont (fonts::display (15.5f));
+                g.setColour (juce::Colours::black.withAlpha (0.35f)); g.drawText (names[m], nr.translated (1.2f, 0.6f), juce::Justification::centredLeft, false);
+                g.setColour (juce::Colours::white);
+                g.drawText (names[m], nr, juce::Justification::centredLeft, false);
+                g.drawText (names[m], nr.translated (0.6f, 0.0f), juce::Justification::centredLeft, false);
+            }
+            pbr::drawScrew (g, { band.getX() + 16, band.getCentreY() }, 5.5f);
+        }
         for (auto pt : { juce::Point<float> (b.getX() + 16, b.getBottom() - 16), juce::Point<float> (b.getRight() - 16, b.getBottom() - 16) })
-            mat::screw (g, pt, 6.0f, pt.x * 0.13f);
+            pbr::drawScrew (g, pt, 6.0f);
     }
+
+    void moved() override { face = {}; repaint(); }
 
     void resized() override
     {
+        face = {};
         auto r = getLocalBounds().reduced (14, 0);
         auto band = r.removeFromTop (48).reduced (0, 10);
         lock.setBounds (band.removeFromRight (48));
@@ -539,7 +518,7 @@ public:
             g.drawLine (b.getX() + b.getWidth() * i / 6.0f, b.getY() + 6, b.getX() + b.getWidth() * i / 6.0f, b.getBottom() - 6);
             g.drawLine (b.getX() + 6, b.getY() + b.getHeight() * i / 6.0f, b.getRight() - 6, b.getY() + b.getHeight() * i / 6.0f);
         }
-        g.setColour (juce::Colours::white.withAlpha (0.45f)); g.setFont (polar::uiFont (10.0f, true));
+        g.setColour (juce::Colours::white.withAlpha (0.45f)); g.setFont (fonts::label (12.0f));
         g.drawText (juce::String::fromUTF8 ("TWEAK \xe2\x86\x92"), b.reduced (10, 6).toNearestInt(), juce::Justification::bottomRight);
         g.drawText (juce::String::fromUTF8 ("\xe2\x86\x91 AMOUNT"), b.reduced (10, 6).toNearestInt(), juce::Justification::topLeft);
 

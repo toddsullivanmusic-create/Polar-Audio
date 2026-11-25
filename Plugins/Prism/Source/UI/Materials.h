@@ -105,7 +105,7 @@ inline void engraved (juce::Graphics& g, const juce::String& text, juce::Rectang
 {
     g.setFont (f);
     g.setColour (onDark ? juce::Colours::black.withAlpha (0.45f) : juce::Colours::white.withAlpha (0.85f));
-    g.drawText (text, r.translated (0, onDark ? -1.0f : 1.0f), j, false);
+    g.drawText (text, r.translated (onDark ? -0.8f : 0.9f, onDark ? -0.3f : 0.4f), j, false);
     g.setColour (ink);
     g.drawText (text, r, j, false);
 }

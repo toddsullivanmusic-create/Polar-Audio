@@ -1,6 +1,8 @@
 #pragma once
 #include "UI/LookAndFeel.h"
 #include "Materials.h"
+#include "PBR.h"
+#include "PrismFonts.h"
 
 namespace prism::ui
 {
@@ -125,21 +127,14 @@ public:
     // Hardware key: raised machined key; when latched it sits pressed in and its LED strip glows
     void drawButtonBackground (juce::Graphics& g, juce::Button& b, const juce::Colour&, bool over, bool down) override
     {
-        auto r = b.getLocalBounds().toFloat().reduced (1.5f, 1.5f);
+        auto r = b.getLocalBounds().toFloat().reduced (3.5f, 3.5f);
         const bool on = b.getToggleState();
         const bool pressed = on || down;
         auto accent = b.findColour (juce::TextButton::buttonOnColourId);
-        juce::Path key; key.addRoundedRectangle (r, 5.0f);
-        // well around the key
-        g.setColour (juce::Colours::black.withAlpha (0.16f)); g.fillRoundedRectangle (r.expanded (1.5f), 6.5f);
-        if (! pressed) juce::DropShadow (juce::Colours::black.withAlpha (over ? 0.32f : 0.26f), 5, { 0, 2 }).drawForPath (g, key);
-        auto top = pressed ? juce::Colour (0xffd9d8d4) : juce::Colour (0xfffbfbfa);
-        auto bot = pressed ? juce::Colour (0xffeeede9) : juce::Colour (0xffd6d5d1);
-        if (over && ! pressed) { top = top.brighter (0.05f); }
-        g.setGradientFill (juce::ColourGradient (top, r.getX(), r.getY(), bot, r.getX(), r.getBottom(), false));
-        g.fillPath (key);
-        if (pressed) mat::innerShadow (g, r, 5.0f, 5.0f, 0.3f);
-        else mat::bevel (g, r, 5.0f, 1.2f, 0.9f);
+        // physically rendered key, cached per size/state
+        g.setOpacity (1.0f);
+        g.drawImage (pbr::cachedKey (b.getWidth(), b.getHeight(), pressed, 2.0f), b.getLocalBounds().toFloat(), juce::RectanglePlacement::stretchToFit);
+        if (over && ! pressed) { g.setColour (juce::Colours::white.withAlpha (0.08f)); g.fillRoundedRectangle (r, 5.0f); }
         // LED strip
         if (accent != juce::Colours::transparentBlack)
         {
@@ -154,7 +149,10 @@ public:
         }
     }
 
-    juce::Font getTextButtonFont (juce::TextButton&, int h) override { return polar::uiFont (juce::jmin (13.0f, h * 0.5f), true); }
+    juce::Font getTextButtonFont (juce::TextButton&, int h) override { return fonts::label (juce::jmin (15.0f, h * 0.58f)); }
+    juce::Font getComboBoxFont (juce::ComboBox&) override { return fonts::mono (12.0f); }
+    juce::Font getPopupMenuFont() override { return fonts::label (15.0f); }
+    juce::Font getLabelFont (juce::Label&) override { return fonts::label (13.0f); }
 
     // Recessed display window
     void drawComboBox (juce::Graphics& g, int w, int h, bool, int, int, int, int, juce::ComboBox& box) override
@@ -169,7 +167,7 @@ public:
     void positionComboBoxText (juce::ComboBox& box, juce::Label& label) override
     {
         label.setBounds (14, 1, box.getWidth() - 34, box.getHeight() - 2);
-        label.setFont (polar::uiFont (13.0f, true));
+        label.setFont (fonts::mono (12.0f));
         label.setColour (juce::Label::textColourId, juce::Colour (0xffe8f0ff));
     }
 
@@ -211,13 +209,13 @@ public:
         auto accent = b.findColour (juce::ToggleButton::tickColourId);
         mat::led (g, { r.getX() + 36, r.getCentreY() }, 3.5f, accent, on);
         mat::engraved (g, b.getButtonText().toUpperCase(), { r.getX() + 48, r.getY(), r.getWidth() - 48, r.getHeight() },
-                       polar::uiFont (11.0f, true), over ? Palette::ink() : Palette::ink2(), juce::Justification::centredLeft);
+                       fonts::label (13.2f), over ? Palette::ink() : Palette::ink2(), juce::Justification::centredLeft);
     }
 
     juce::Label* createSliderTextBox (juce::Slider& s) override
     {
         auto* l = juce::LookAndFeel_V4::createSliderTextBox (s);
-        l->setFont (polar::uiFont (11.5f, true));
+        l->setFont (fonts::label (13.8f));
         l->setJustificationType (juce::Justification::centred);
         l->setColour (juce::Label::textColourId, Palette::ink2());
         l->setColour (juce::Label::outlineColourId, juce::Colours::transparentBlack);
