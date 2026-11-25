@@ -28,8 +28,12 @@ done
 killall -9 AudioComponentRegistrar 2>/dev/null
 echo
 echo "Validating with Apple's auval (this is exactly what Logic runs)..."
-for spec in "aufx Aur1" "aufx Glw1" "aumu McG1" "aumu Snc1" "aufx Prs1"; do
-    if auval -v $spec Polr 2>&1 | grep -q "PASS"; then echo "  PASS  $spec"; else echo "  FAIL  $spec  (open Logic → Settings → Plug-in Manager → Reset & Rescan)"; fi
+for c in Components/*.component; do
+    case "$(basename "$c" .component)" in
+        Aura) spec="aufx Aur1" ;; Glow) spec="aufx Glw1" ;; McGee) spec="aumu McG1" ;;
+        Sanctuary) spec="aumu Snc1" ;; Prism) spec="aufx Prs1" ;; *) continue ;;
+    esac
+    if auval -v $spec Polr 2>&1 | grep -q "PASS"; then echo "  PASS  $(basename "$c")"; else echo "  FAIL  $(basename "$c")  (open Logic → Settings → Plug-in Manager → Reset & Rescan)"; fi
 done
 echo
 echo "Done. Open Logic Pro:"

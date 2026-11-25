@@ -55,12 +55,20 @@ jobs:
           cp Installer/INSTALL.txt dist/
           chmod +x "dist/Install Polar Plugins.command"
           cd dist && zip -ry ../PolarAudio-macOS.zip . && cd ..
-          ls -la PolarAudio-macOS.zip
+          # one zip per plugin, so a new plugin can be downloaded on its own
+          for p in Aura Glow McGee Sanctuary Prism; do
+            rm -rf single && mkdir -p single/Components single/VST3
+            cp -R dist/Components/$p.component single/Components/
+            cp -R dist/VST3/$p.vst3 single/VST3/
+            cp "dist/Install Polar Plugins.command" dist/INSTALL.txt single/
+            (cd single && zip -ry ../Polar-$p-macOS.zip .)
+          done
+          ls -la *.zip
 
       - uses: actions/upload-artifact@v4
         with:
           name: PolarAudio-macOS
-          path: PolarAudio-macOS.zip
+          path: "*.zip"
 
       - name: Publish rolling "latest" release (every push to main)
         if: github.ref == 'refs/heads/main'
@@ -69,16 +77,18 @@ jobs:
           tag_name: latest
           name: Polar Audio — latest build
           prerelease: true
-          files: PolarAudio-macOS.zip
+          files: "*.zip"
           body: |
             Latest build of AURA, GLOW, McGEE, SANCTUARY and PRISM from `main` (commit ${{ github.sha }}).
             Audio Units + VST3, universal (Apple Silicon + Intel), validated with `auval` on the build machine.
 
-            **Install:** download `PolarAudio-macOS.zip`, unzip, double-click **Install Polar Plugins.command**, open Logic Pro.
+            **Download:** `PolarAudio-macOS.zip` = all plugins, or `Polar-<Name>-macOS.zip` for just one (e.g. `Polar-Prism-macOS.zip`).
+
+            **Install:** unzip, double-click **Install Polar Plugins.command**, open Logic Pro.
 
       - name: Versioned release (tags v*)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: PolarAudio-macOS.zip
+          files: "*.zip"
           generate_release_notes: true
